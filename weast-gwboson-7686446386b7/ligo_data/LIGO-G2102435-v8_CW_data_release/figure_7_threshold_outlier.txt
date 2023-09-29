@@ -1,0 +1,4 @@
+# outlier frequencies (black dashed, vertical, 2 rows), followed by full search outlier value (red, horizontal, final row)
+5.947624588012695312e+01
+5.934364318847656250e+01
+4.462443216532705037e+01
