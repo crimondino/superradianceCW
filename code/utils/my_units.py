@@ -81,3 +81,5 @@ barn = 10**-28 * Meter**2; fb = 10**-15 * barn;
 GF = 1.166 * 10**-5 * GeV**-2;
 
 ThetaAxion = 4.1 * 10**-19
+
+Jy = 1e-26*Watt/Meter**2/Hz;
