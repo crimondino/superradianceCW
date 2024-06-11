@@ -17,7 +17,7 @@ from my_units import *
 
 #%%
 Mmin, Mmax = 5, 30
-Norm = 0.740741*(Mmax**(1.35)-Mmin**(1.35))/( (Mmax*Mmin)**(1.35))
+Norm = 1/1.35*(Mmax**(1.35)-Mmin**(1.35))/( (Mmax*Mmin)**(1.35))
 
 def dndM(m):
     # Black hole mass distribution from 2003.03359
@@ -25,7 +25,7 @@ def dndM(m):
 #%%
 
 #%%
-def get_hTilde_peak(bc, freq_GW, MList, aList, RMW=20*kpc):
+def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
     '''Function to compute the strain hTilde as a function of mass, spin at the peak of the SR cloud growth'''
 
     tSR = np.zeros((len(MList), len(aList)))
@@ -44,7 +44,7 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, RMW=20*kpc):
                 if wf.azimuthal_num()==1:
                     tSR[i_m, i_a] = wf.cloud_growth_time()*Second
                     tGW[i_m, i_a] = wf.gw_time()*Second
-                    hTilde[i_m, i_a] = wf.strain_char(0., dObs=(RMW/Mpc) )
+                    hTilde[i_m, i_a] = wf.strain_char(0., dObs=(dcrit/Mpc) )
                 else:
                     tSR[i_m, i_a] = np.nan
                     tGW[i_m, i_a] = np.nan
@@ -59,9 +59,43 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, RMW=20*kpc):
 #%%
 
 #%%
-def get_R_limits(tSR, tGW, hTilde, hVal, RMW=20*kpc, tMW = 13.6*1E9*Year):
+def get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn = 10.*1E9*Year):
 
-    RUL = hTilde/hVal*RMW
+    dUL = hTilde/hVal*dcrit
+
+    deltaT = tIn - tSR + tGW
+    xx = np.sqrt( deltaT**2. - 4.*dUL*tGW )
+
+    dminus = 1/2.*( deltaT - xx )
+    dplus = 1/2.*( deltaT + xx )
+    dmax_temp = np.array([dplus, dUL, tIn-tSR]).T  
+    
+    return dminus, np.min(dmax_temp, axis=2).T
+#%%
+
+
+#%%
+def get_dfdlogh(tSR, tGW, hTilde, MList, aList, hVal, d_crit, tIn, r_d, rho_obs, z_max): 
+    '''Returns the differential pdf of h as a function of log10(h)'''
+
+    dmin, dmax = get_d_limits(tSR, tGW, hTilde, hVal, d_crit, tIn)
+    int_over_vol = get_int_over_vol(r_d, rho_obs, d_crit, z_max, dmin, dmax)
+
+    fMList = dndM(MList)
+    integrand = int_over_vol * hTilde/hVal * tGW/tIn
+    integrand[np.isnan(integrand)] = 0
+
+    intOvera = np.trapz(integrand, x=aList, axis=1)
+    res = np.trapz(fMList*intOvera, x=MList)
+
+    return res
+#%%
+
+########## FUNCTION FOR CONSTANT DISTRIBUTION OVER A SPHERE ##########
+#%%
+def get_R_limits(tSR, tGW, hTilde, hVal, dcrit, RMW=20*kpc, tMW = 13.6*1E9*Year):
+
+    RUL = hTilde/hVal*dcrit, 
 
     deltaT = tMW - tSR + tGW
     xx = np.sqrt( deltaT**2. - 4.*RUL*tGW )
@@ -74,14 +108,13 @@ def get_R_limits(tSR, tGW, hTilde, hVal, RMW=20*kpc, tMW = 13.6*1E9*Year):
 #%%
 
 #%%
-#def get_dfdlogh(bc, f_GW, MList, aList, hVal, RMW=20*kpc, tMW = 13.6*1E9*Year): 
-def get_dfdlogh(tSR, tGW, hTilde, MList, aList, hVal, RMW=20*kpc, tMW = 13.6*1E9*Year): 
+def get_dfdlogh_const_sphere(tSR, tGW, hTilde, MList, aList, hVal, dcrit, RMW=20*kpc, tMW = 13.6*1E9*Year): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
-    R_min, R_max = get_R_limits(tSR, tGW, hTilde, hVal, RMW, tMW)
+    R_min, R_max = get_R_limits(tSR, tGW, hTilde, hVal, dcrit, RMW, tMW)
 
     fMList = dndM(MList)
-    integrand = 3./2. * (R_max**2. - R_min**2.)/(RMW**2.) * hTilde/hVal * tGW/tMW
+    integrand = 3./2. * dcrit/RMW * (R_max**2. - R_min**2.)/(RMW**2.) * hTilde/hVal * tGW/tMW
     integrand[np.isnan(integrand)] = 0
 
     intOvera = np.trapz(integrand, x=aList, axis=1)
@@ -89,4 +122,99 @@ def get_dfdlogh(tSR, tGW, hTilde, MList, aList, hVal, RMW=20*kpc, tMW = 13.6*1E9
 
     return res
 #%%
+
+########## FUNCTION FOR CONSTANT DISTRIBUTION OVER A DISC, THIN DISC APPROX ##########
+
+#%%
+def get_dfdlogh_center_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, tIn): 
+    '''Returns the differential pdf of h as a function of log10(h)'''
+
+    dmin, dmax = get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
+
+    fMList = dndM(MList)
+    integrand = dcrit/rd * (np.exp(-dmin/rd) - np.exp(-dmax/rd)) * hTilde/hVal * tGW/tIn
+    integrand[np.isnan(integrand)] = 0
+
+    intOvera = np.trapz(integrand, x=aList, axis=1)
+    res = np.trapz(fMList*intOvera, x=MList)
+
+    return res
+#%%
+
+########## FUNCTION FOR CONSTANT DISTRIBUTION OVER A DISC, WITHOUT THIN DISC APPROX ##########
+
+#%%
+def get_int_over_vol_OLD(r_d, rho_obs, d_crit, z_max, dmin, dmax):
+
+    rho_list = np.geomspace(1E-3, 100, 104)
+    phi_list = np.linspace(0, 2*np.pi, 99)
+    rho_grid, phi_grid = np.meshgrid(rho_list, phi_list)
+
+    rho_sq = (rho_grid)**2 + (rho_obs/r_d)**2 - 2*rho_grid*(rho_obs/r_d)*np.cos(phi_grid)
+
+    dmin_geom = np.sqrt( rho_sq )
+    dmax_geom = np.sqrt( rho_sq + (z_max/r_d)**2 )
+    
+    y = np.linspace(0, 1, 134)
+
+    int_over_rho = np.zeros( dmin.shape )
+
+    for i_m in range(dmin.shape[0]):
+        for i_s in range(dmin.shape[1]):
+            dmin_final = np.maximum( np.full( dmin_geom.shape, dmin[i_m, i_s]/r_d), dmin_geom)
+            dmax_final = np.minimum( np.full( dmax_geom.shape, dmax[i_m, i_s]/r_d), dmax_geom)
+
+            bad_pos = (dmin_final > dmax_final)
+            dmin_final[bad_pos] = np.nan
+            dmax_final[bad_pos] = np.nan
+
+            ### Integrate over the distance 
+            dist_list = (dmin_final + y[..., None, None]*(dmax_final - dmin_final))
+            integrand = 1/np.sqrt( dist_list**2 - rho_sq[None, ...]/r_d**2 )
+            integrand[np.isnan(integrand)] = 0; dist_list[np.isnan(dist_list)] = 0
+            int_over_y = np.trapz(integrand, dist_list, axis=0)
+            int_over_phi = np.trapz(int_over_y, phi_list, axis=0)
+            int_over_rho[i_m, i_s] = np.trapz(int_over_phi*np.exp(-rho_list), rho_list, axis=0)
+
+    return 0.85/(2*np.pi)*d_crit/z_max*int_over_rho
+#%%
+
+########## OLD ##########
+
+#%%
+def get_int_over_vol_OLD(r_d, rho_obs, d_crit, z_max, dmin, dmax):
+
+    rho_list = np.geomspace(1E-3, 100, 104)
+    phi_list = np.linspace(0, 2*np.pi, 99)
+    rho_grid, phi_grid = np.meshgrid(rho_list, phi_list)
+
+    rho_sq = (rho_grid)**2 + (rho_obs/r_d)**2 - 2*rho_grid*(rho_obs/r_d)*np.cos(phi_grid)
+
+    dmin_geom = np.sqrt( rho_sq )
+    dmax_geom = np.sqrt( rho_sq + (z_max/r_d)**2 )
+    
+    y = np.linspace(0, 1, 134)
+
+    int_over_rho = np.zeros( dmin.shape )
+
+    for i_m in range(dmin.shape[0]):
+        for i_s in range(dmin.shape[1]):
+            dmin_final = np.maximum( np.full( dmin_geom.shape, dmin[i_m, i_s]/r_d), dmin_geom)
+            dmax_final = np.minimum( np.full( dmax_geom.shape, dmax[i_m, i_s]/r_d), dmax_geom)
+
+            bad_pos = (dmin_final > dmax_final)
+            dmin_final[bad_pos] = np.nan
+            dmax_final[bad_pos] = np.nan
+
+            ### Integrate over the distance 
+            dist_list = (dmin_final + y[..., None, None]*(dmax_final - dmin_final))
+            integrand = 1/np.sqrt( dist_list**2 - rho_sq[None, ...]/r_d**2 )
+            integrand[np.isnan(integrand)] = 0; dist_list[np.isnan(dist_list)] = 0
+            int_over_y = np.trapz(integrand, dist_list, axis=0)
+            int_over_phi = np.trapz(int_over_y, phi_list, axis=0)
+            int_over_rho[i_m, i_s] = np.trapz(int_over_phi*np.exp(-rho_list), rho_list, axis=0)
+
+    return 0.85/(2*np.pi)*d_crit/z_max*int_over_rho
+#%%
+
 
