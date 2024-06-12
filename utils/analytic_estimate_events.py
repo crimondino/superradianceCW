@@ -108,6 +108,36 @@ def get_R_limits(tSR, tGW, hTilde, hVal, dcrit, RMW=20*kpc, tMW = 13.6*1E9*Year)
 #%%
 
 #%%
+def get_int_over_vol_sphere(RMW, robs, dmin, dmax):
+
+    int_over_vol = np.zeros( dmin.shape )
+    phi_list = np.linspace(0, 2*np.pi, 201)
+    theta_list = np.linspace(0, np.pi, 204)
+    robs_tilde = robs/RMW
+
+    for i_m in range(dmin.shape[0]):
+        for i_s in range(dmin.shape[1]):
+
+#            rho_list = np.geomspace(0.1*np.sqrt( (dmin[i_m, i_s]/RMW) - robs_tilde**2 ), 1, 304)
+            r_list = np.geomspace(1E-5, 1, 304)
+            r_grid, phi_grid, theta_grid = np.meshgrid(phi_list, theta_list, r_list)
+
+            dist_grid = np.sqrt( (r_grid)**2 + np.full(r_grid.shape, robs_tilde**2) 
+                                - 2*robs_tilde*r_grid*np.cos(phi_grid)*np.sin(theta_grid) )
+
+            integrand = r_grid**2/dist_grid
+            integrand[dist_grid < (dmin[i_m, i_s]/RMW)] = 0.
+            integrand[dist_grid > (dmax[i_m, i_s]/RMW)] = 0.
+
+            int_over_r = np.trapz(integrand, r_grid, axis=2)
+            #print(int_over_r.shape, integrand.shape)
+            int_over_phi = np.trapz(int_over_r, phi_list, axis=1)
+            int_over_vol[i_m, i_s] = np.trapz(int_over_phi, theta_list, axis=0)
+
+    return int_over_vol
+#%%
+
+#%%
 def get_dfdlogh_const_sphere(tSR, tGW, hTilde, MList, aList, hVal, dcrit, RMW=20*kpc, tMW = 13.6*1E9*Year): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
@@ -126,7 +156,7 @@ def get_dfdlogh_const_sphere(tSR, tGW, hTilde, MList, aList, hVal, dcrit, RMW=20
 ########## FUNCTION FOR CONSTANT DISTRIBUTION OVER A DISC, THIN DISC APPROX ##########
 
 #%%
-def get_dfdlogh_center_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, tIn): 
+def get_dfdlogh_center_thin_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, tIn): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
     dmin, dmax = get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
@@ -144,39 +174,75 @@ def get_dfdlogh_center_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, tIn
 ########## FUNCTION FOR CONSTANT DISTRIBUTION OVER A DISC, WITHOUT THIN DISC APPROX ##########
 
 #%%
-def get_int_over_vol_OLD(r_d, rho_obs, d_crit, z_max, dmin, dmax):
+def get_int_over_vol(rd, zmax, dmin, dmax):
 
-    rho_list = np.geomspace(1E-3, 100, 104)
-    phi_list = np.linspace(0, 2*np.pi, 99)
-    rho_grid, phi_grid = np.meshgrid(rho_list, phi_list)
-
-    rho_sq = (rho_grid)**2 + (rho_obs/r_d)**2 - 2*rho_grid*(rho_obs/r_d)*np.cos(phi_grid)
-
-    dmin_geom = np.sqrt( rho_sq )
-    dmax_geom = np.sqrt( rho_sq + (z_max/r_d)**2 )
-    
-    y = np.linspace(0, 1, 134)
-
-    int_over_rho = np.zeros( dmin.shape )
+    int_over_vol = np.zeros( dmin.shape )
+    z_list = np.linspace(0, 1, 201)
 
     for i_m in range(dmin.shape[0]):
         for i_s in range(dmin.shape[1]):
-            dmin_final = np.maximum( np.full( dmin_geom.shape, dmin[i_m, i_s]/r_d), dmin_geom)
-            dmax_final = np.minimum( np.full( dmax_geom.shape, dmax[i_m, i_s]/r_d), dmax_geom)
 
-            bad_pos = (dmin_final > dmax_final)
-            dmin_final[bad_pos] = np.nan
-            dmax_final[bad_pos] = np.nan
+            rho_list = np.geomspace(0.1*(dmin[i_m, i_s]/rd), 10.*(dmax[i_m, i_s]/rd), 304)
+            rho_grid, z_grid = np.meshgrid(rho_list, z_list)
 
-            ### Integrate over the distance 
-            dist_list = (dmin_final + y[..., None, None]*(dmax_final - dmin_final))
-            integrand = 1/np.sqrt( dist_list**2 - rho_sq[None, ...]/r_d**2 )
-            integrand[np.isnan(integrand)] = 0; dist_list[np.isnan(dist_list)] = 0
-            int_over_y = np.trapz(integrand, dist_list, axis=0)
-            int_over_phi = np.trapz(int_over_y, phi_list, axis=0)
-            int_over_rho[i_m, i_s] = np.trapz(int_over_phi*np.exp(-rho_list), rho_list, axis=0)
+            dist_grid = np.sqrt( (rho_grid)**2 + zmax**2/rd**2 * (z_grid)**2 )
 
-    return 0.85/(2*np.pi)*d_crit/z_max*int_over_rho
+            integrand = rho_grid*np.exp(-rho_grid)/dist_grid
+            integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
+            integrand[dist_grid > (dmax[i_m, i_s]/rd)] = 0.
+
+            int_over_rho = np.trapz(integrand, rho_list, axis=1)
+            int_over_vol[i_m, i_s] = np.trapz(int_over_rho, z_list, axis=0)
+
+    return int_over_vol
+#%%
+
+#%%
+def get_vol_comp(rd, zmax, dmin, dmax):
+
+    int_over_vol = np.zeros( dmin.shape )
+    z_list = np.linspace(0, 1, 201)
+
+    for i_m in range(dmin.shape[0]):
+        for i_s in range(dmin.shape[1]):
+
+            #dist_grid[dist_grid < (dmin[i_m, i_s]/rd)] = np.nan 
+            #dist_grid[dist_grid > dmax[i_m, i_s]/rd] = np.nan
+            #rho_grid[dist_grid < dmin[i_m, i_s]/rd] = 0.
+            #rho_grid[dist_grid > dmax[i_m, i_s]/rd] = 0.
+            #print('Full ', dist_grid.shape )
+            #print('Below or above: ', dist_grid[np.isnan(dist_grid)].shape )
+
+            rho_list = np.geomspace(0.1*(dmin[i_m, i_s]/rd), 10.*(dmax[i_m, i_s]/rd), 304)
+            rho_grid, z_grid = np.meshgrid(rho_list, z_list)
+
+            dist_grid = np.sqrt( (rho_grid)**2 + zmax**2/rd**2 * (z_grid)**2 )
+
+            integrand = rho_grid*np.exp(-rho_grid)/dist_grid
+            integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
+            integrand[dist_grid > (dmax[i_m, i_s]/rd)] = 0.
+
+            int_over_rho = np.trapz(integrand, rho_list, axis=1)
+            int_over_vol[i_m, i_s] = np.trapz(int_over_rho, z_list, axis=0)
+
+    return int_over_vol/(np.exp(-dmin/rd) - np.exp(-dmax/rd))
+#%%
+
+#%%
+def get_dfdlogh_center_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, zmax, tIn): 
+    '''Returns the differential pdf of h as a function of log10(h)'''
+
+    dmin, dmax = get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
+    int_over_vol = get_int_over_vol(rd, zmax, dmin, dmax)
+
+    fMList = dndM(MList)
+    integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn
+    integrand[np.isnan(integrand)] = 0
+
+    intOvera = np.trapz(integrand, x=aList, axis=1)
+    res = np.trapz(fMList*intOvera, x=MList)
+
+    return res
 #%%
 
 ########## OLD ##########

@@ -51,10 +51,23 @@ bc = ub.UltralightBoson(spin=1, model="relativistic")
 #%%
 
 #%%
+i_fGW = 2
+hVal = 1E-26
+z_max = 3000*pc; 
+
+t_SR, t_GW, h_peak = get_hTilde_peak(bc, freq_GW[i_fGW], MList, aList, d_crit)
+dmin, dmax = get_d_limits(t_SR, t_GW, h_peak, hVal, d_crit, tIn)
+vol_comp = get_vol_comp(r_d, z_max, dmin, dmax)
+vol_sphere = get_int_over_vol_sphere(RMW, rho_obs, dmin, dmax)
+#%%
+
+#%%
 hList = np.geomspace(1E-27, 1E-24, 30)
-dfdlogh_const = np.zeros((len(freq_GW), len(hList)))
-dfdlogh_const_small = np.zeros((len(freq_GW), len(hList)))
-dfdlogh = np.zeros((len(freq_GW), len(hList)))
+#dfdlogh_const = np.zeros((len(freq_GW), len(hList)))
+#dfdlogh_const_small = np.zeros((len(freq_GW), len(hList)))
+#dfdlogh = np.zeros((len(freq_GW), len(hList)))
+dfdlogh_disc_thin = np.zeros((len(freq_GW), len(hList)))
+dfdlogh_disc = np.zeros((len(freq_GW), len(hList)))
 Nevent = np.zeros((len(freq_GW)))
 Ntot = 3000
 #%%
@@ -64,14 +77,16 @@ for i_fGW in tqdm(range(4)):
     t_SR, t_GW, h_peak = get_hTilde_peak(bc, freq_GW[i_fGW], MList, aList, d_crit)
 
     for i_h, hVal in enumerate(hList):  
-        #print('Computing number of events from a uniform sphere ...')  
-        dfdlogh_const[i_fGW, i_h] = get_dfdlogh_const_sphere(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, RMW, tIn)
+        #print('Computing number of events from thin disc ...')  
+        dfdlogh_disc_thin[i_fGW, i_h] = get_dfdlogh_center_thin_disc(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, r_d, tIn)
+        #dfdlogh_const[i_fGW, i_h] = get_dfdlogh_const_sphere(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, RMW, tIn)
         #dfdlogh_const_small[i_fGW, i_h] = get_dfdlogh_const_sphere(t_SR, t_GW, h_peak, MList, aList, hVal, 500*kpc)
-        #print('Computing number of events from the disk ...')  
-        dfdlogh[i_fGW, i_h] = get_dfdlogh(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, tIn, r_d, rho_obs, z_max)
+        #print('Computing number of events from disk ...')  
+        dfdlogh_disc[i_fGW, i_h] = get_dfdlogh_center_disc(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, r_d, z_max, tIn)
+        #dfdlogh[i_fGW, i_h] = get_dfdlogh(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, tIn, r_d, rho_obs, z_max)
 
-    selh = (hList > h_UL[i_fGW])
-    Nevent[i_fGW] = Ntot*np.trapz(dfdlogh[i_fGW][selh]/hList[selh], x=hList[selh])
+#    selh = (hList > h_UL[i_fGW])
+#    Nevent[i_fGW] = Ntot*np.trapz(dfdlogh[i_fGW][selh]/hList[selh], x=hList[selh])
 #%%
 
 #%%
@@ -133,9 +148,9 @@ font_s=16
 #for i_fGW in range(len(freq_GW)):
 for i_fGW in range(4):
     #line,=ax.plot(hList, 100/0.85*Ntot*dfdlogh[i_fGW], label=str(round(freq_GW[i_fGW], 1))+' Hz')
-    #line,=ax.plot(hList, Ntot*dfdlogh_const[i_fGW], linestyle='dashed', label=str(round(freq_GW[i_fGW], 1))+' Hz')
+    line,=ax.plot(hList, Ntot*dfdlogh_disc_thin[i_fGW], linestyle='dashed', label=str(round(freq_GW[i_fGW], 1))+' Hz')
     #line,=ax.plot(hList, Ntot*dfdlogh_const_small[i_fGW], label=str(round(freq_GW[i_fGW], 1))+' Hz')
-    line,=ax.plot(hList, Ntot*dfdlogh_center_disc[i_fGW], label=str(round(freq_GW[i_fGW], 1))+' Hz')
+    line,=ax.plot(hList, Ntot*dfdlogh_disc[i_fGW], label=str(round(freq_GW[i_fGW], 1))+' Hz')
     #ax.axvline(x=h_UL[i_fGW], linewidth=1, alpha=0.8, c=line.get_color(), linestyle='dashed')
 
 ax.set_xscale('log'); ax.set_yscale('log')
