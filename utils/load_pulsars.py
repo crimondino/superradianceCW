@@ -19,11 +19,18 @@ def load_pulsars_fnc():
     df_fdots = df_fdots[~np.isnan(df_fdots['upper_limits'])]
     df_fdots['type'] = 'fdot'
 
-    columns_to_use = ['NAME', 'RAJ', 'DECJ', 'F0', 'F1', 'F_GW', 'upper_limits', 'type', 
+    columns_to_use = ['NAME', 'RAJ', 'DECJ', 'F0', 'F1', 'F_GW', 'upper_limits', 'type', 'suggested_pipeline',
                       'f range or resolution [Hz]', 'fdot range or resolution [Hz/s]']
     df_pulsars = pd.concat([df_triplets[columns_to_use], df_doublets[columns_to_use], df_fdots[columns_to_use]]) 
     df_pulsars.sort_values(by='F_GW', inplace=True)
     df_pulsars.reset_index(inplace=True)
+
+    list_names = ['J0418+6635', 'B1639+36A/J1641+3627A', 'J1844+0028g', 'J1911+0101B', 
+                  'J1940+26', 'J1904+0836g', 'J1953+1844g']
+    list_decj = ['+66:35:24.726', '+36:27:14.9788', '+00:28:48', '+01:01:50.44', '+26:01', '+08:36', '+18:44']
+    for i in range(len(list_names)): 
+        df_pulsars.loc[df_pulsars['NAME']==list_names[i], 'DECJ'] = list_decj[i]
+        #df_pulsars[df_pulsars['NAME']==list_names[i]]['DECJ'] = list_decj[i]
     
     return df_pulsars
 #%%
