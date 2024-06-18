@@ -72,7 +72,7 @@ print("--- %s seconds ---" % (time.time() - start_time))
 #%%
 
 #%%
-for i_fGW in tqdm(range(1)):
+for i_fGW in tqdm(range(4)):
     print('Tot integral = ', np.trapz(dfdlogh_center_disc[i_fGW]/hList, x=hList))
 #%%
 
@@ -80,6 +80,7 @@ for i_fGW in tqdm(range(1)):
 ############## Plots ##############
 #%%
 import matplotlib.pyplot as plt
+import seaborn as sns
 plt.rcdefaults()
 from matplotlib import font_manager
 from matplotlib import rcParams
@@ -88,6 +89,29 @@ rcParams['text.usetex'] = True
 rcParams['font.family'] = 'times' #'sans-serif'
 font_manager.findfont('serif', rebuild_if_missing=True)
 rcParams.update({'font.size':14})
+#%%
+
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=16
+colors = sns.color_palette("deep", 4) 
+
+#for i_fGW in range(len(freq_GW)):
+for i_fGW in range(4):
+    #line,=ax.plot(hList, Ntot*dfdlogh_center_disc[i_fGW], linestyle='dashed', color = colors[i_fGW])
+    line,=ax.plot(hList, Ntot*dfdlogh_disc[i_fGW], color = colors[i_fGW], label=str(round(freq_GW[i_fGW], 1))+' Hz')
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel(r'h', fontsize=font_s); ax.set_ylabel(r'$dN/d\log h$', fontsize=font_s); 
+ax.set_title('Galactic disc, Earth observer, $N_{\mathrm{tot}} =$ '+str(Ntot), fontsize=font_s);
+ax.legend(title='$f_{\rm GW}$')
+ax.set_ylim(0.01,1E4)
+ax.grid()
+ax.text(1E-30, 3000, r'$M_{\rm min} = 5\ M_{\odot},\ M_{\rm max} = 30\ M_{\odot}$', fontsize=12)
+ax.text(1E-30, 1200, r'$s_{\rm min} = 0,\ s_{\rm max} = 1$', fontsize=12)
+
+fig.tight_layout()
+fig.savefig('figs/dndlogh_disc.pdf', bbox_inches="tight")
 #%%
 
 #%%

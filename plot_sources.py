@@ -17,11 +17,10 @@ from utils.load_pulsars import load_pulsars_fnc
 #%%
 ### Loading csv file with pulsars data as a panda dataframe
 pulsars = load_pulsars_fnc()
-pulsars = pulsars[~pulsars['DECJ'].isna()]
-pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!', '#REF!', '#VALUE!'])]
+#pulsars = pulsars[~pulsars['DECJ'].isna()]
+#pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!', '#REF!', '#VALUE!'])]
+pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!'])] # I couldn't find 'J1838-0022g' on the ATNF catalog. It is the only one with DECJ missing
 pulsars.replace('NB', 'Narrow Band', inplace=True) 
-#pulsars = pulsars[ (~np.isnan(pulsars['RAJ'].to_numpy()) & ~np.isnan(pulsars['DECJ'].to_numpy()) ) ]
-#pulsars = pulsars[pulsars['suggested_pipeline'] == 'NB'] # select only those with narrow band search
 print(len(pulsars))
 #%%
 
@@ -50,14 +49,15 @@ markers = ['D', 'o', '^', 's', 'd', 'p']
 marker_size = 40
 colors = sns.color_palette("bright", len(pipelines)) 
 
-hp.mollview(title="Sky Map of Sources", coord='G', flip='geo')
+hp.mollview(title="Sky Map of selected sources", coord='G', flip='geo')
 hp.projscatter(270, 0, lonlat=True, s=marker_size, color='k', marker='x', label='Earth')
 for i_p, p_name in enumerate(pipelines): 
     l_temp = l[pulsars['suggested_pipeline'] == p_name]
     b_temp = b[pulsars['suggested_pipeline'] == p_name]
     hp.projscatter(l_temp, b_temp, lonlat=True, s=marker_size, color=colors[i_p], marker=markers[i_p], label=p_name)
 hp.graticule()
-plt.legend()
+plt.legend(loc='lower left')
+plt.savefig('figs/sky_map_galactic.pdf', format='pdf')
 #plt.show()
 #%%
 
