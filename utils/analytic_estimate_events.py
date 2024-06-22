@@ -122,9 +122,9 @@ def get_vol_int_disc(rd, robs, dmin, dmax, tGW, hTilde, hVal, fdot0, fdotMax, n_
 
             dist_grid = np.sqrt( (rho_grid)**2 + robs_tilde_sq - 2*robs_tilde*rho_grid*cos_phi_grid )
 
-            # cut on fdot
+            # require fdot to be small enough
             tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
-            H = np.heaviside(fdotMax/get_fdot_tobs(fdot0, tobs_over_tGW)-1., 1.0) 
+            H = np.heaviside(fdotMax/get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
 
             integrand = H*rho_grid*np.exp(-rho_grid)/dist_grid
             integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
