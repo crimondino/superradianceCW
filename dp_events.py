@@ -22,6 +22,7 @@ print(len(pulsars))
 # Removing frequency that are close to each over because they give similar results
 test, pulsars_ind = np.unique(np.round(pulsars['F_GW'].to_numpy(), -1), return_index=True)
 freq_GW = (pulsars['F_GW'].iloc[pulsars_ind]).to_numpy()
+fdot_range = (pulsars['fdot range or resolution [Hz/s]'].iloc[pulsars_ind]).to_numpy()
 h_UL = (pulsars['upper_limits'].iloc[pulsars_ind]).to_numpy()
 print(len(freq_GW))
 #%%
@@ -31,16 +32,87 @@ print(len(freq_GW))
 #MList = np.geomspace(Mmin, Mmax, 108) 
 #aList = np.linspace(0, 1, 103)
 MList = np.geomspace(Mmin, Mmax, 205) #113) 
-aList = np.linspace(0, 0.99, 198) #105)
+aMin, aMax = 0, 0.99
+aList = np.linspace(aMin, aMax, 198) #105)
 
 # Parameters used for Galactic BH distribution
-RMW = 20*kpc; tMW = 13.6*1E9*Year
-d_crit = 5*kpc; r_d = 2.15*kpc; z_max = 75.*pc; rho_obs = 8.*kpc
-tIn = 10.*1E9*Year
+d_crit = 5*kpc; r_d = 2.15*kpc; z_max = 75.*pc; R_b = 120*pc; rho_obs = 8.*kpc
+tIn, tEndB, tEndD = 10.*1E9*Year, 8.*1E9*Year, 0.
+x_disc, x_bulge = 0.85, 0.15
 #%%
 
 #%%
 bc = ub.UltralightBoson(spin=1, model="relativistic") 
+#%%
+
+#%%
+t_SR, t_GW, h_Tilde, fGW_dot = get_hTilde_peak(bc, freq_GW[0], MList, aList, d_crit)
+#%%
+
+#%%
+hVal = 5.E-26
+dminusEn, dplusEn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tEndB)
+dminusIn, dplusIn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tIn)
+#%%
+
+#%%
+norm_disc = 1/(aMax-aMin)
+norm_bulge = 1/(aMax-aMin)/(1-tEndB/tIn)
+
+hVal = 5.E-26
+dfdlogh_disc = norm_disc*get_dfdlogh_disc(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[0], d_crit, r_d, rho_obs, tIn, x_disc)
+#%%
+
+#%%
+dminusEn, dplusEn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tEndB)
+dminusIn, dplusIn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tIn)
+dmin, dmax = get_d_limits(t_SR, dminusIn, dplusIn, h_Tilde, hVal, d_crit, tIn)
+#%%
+
+#%%
+n_phi = 101; n_theta = 105; n_r = 98
+
+int_over_vol = np.zeros( dmin.shape )
+r_list = np.geomspace(1E-5, 1E3, n_r)
+phi_list = np.linspace(0, 2*np.pi, n_phi)
+theta_list = np.linspace(0, np.pi, n_theta)
+robs_tilde = rho_obs/R_b
+robs_tilde_sq = robs_tilde**2
+
+r_grid = r_list[np.newaxis, np.newaxis, :]
+r_grid_sq = r_grid**2
+sin_theta_grid = np.sin(theta_list)[:, np.newaxis, np.newaxis]
+cos_phi_grid = np.cos(phi_list)[np.newaxis, :, np.newaxis]
+dist_grid = np.sqrt( r_grid_sq + robs_tilde_sq - 2*robs_tilde*r_grid*cos_phi_grid*sin_theta_grid )
+#%%
+
+#%%
+i_m, i_s = 134, 165
+
+# require fdot to be small enough
+tobs_over_tGW = (h_Tilde[i_m, i_s]/hVal / dist_grid - 1.)
+H = np.heaviside(fdot_range[0]/get_fdot_tobs(fGW_dot[i_m, i_s], tobs_over_tGW)-1., 1.) 
+integrand = H*r_grid_sq*np.exp(-r_grid)/dist_grid
+#%%
+
+#%%
+cond1 = ( (dist_grid < (tEndB - t_SR[i_m, i_s])/R_b ) &
+            ( (dist_grid < dminusIn[i_m, i_s]/R_b) | 
+            ( (dminusEn[i_m, i_s]/R_b < dist_grid) & (dist_grid < dplusEn[i_m, i_s]/R_b)) | 
+            (dist_grid > dplusIn[i_m, i_s]/R_b) ) )
+cond2 = ( (dist_grid > (tEndB - t_SR[i_m, i_s])/R_b ) & 
+            ( (dist_grid < dmin[i_m, i_s]/R_b) | (dist_grid > dmax[i_m, i_s]/R_b) ) )
+
+integrand[cond1] = 0.
+integrand[cond2] = 0.
+
+int_over_r = np.trapz(integrand, r_list, axis=2)
+int_over_phi = np.trapz(int_over_r, phi_list, axis=1)
+int_over_vol[i_m, i_s] = np.trapz(int_over_phi, theta_list, axis=0)
+#%%
+
+#%%
+dfdlogh_bulge = norm_bulge*get_dfdlogh_bulge(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[0], d_crit, R_b, rho_obs, tIn, tEndB, x_bulge)
 #%%
 
 

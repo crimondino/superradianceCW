@@ -1,8 +1,5 @@
 #%%
 import numpy as np
-#%%
-
-#%%
 from os.path import dirname, abspath, join
 import sys
 
@@ -16,11 +13,12 @@ from my_units import *
 #%%
 
 #%%
-Mmin, Mmax = 5, 30
-Norm = 1/1.35*(Mmax**(1.35)-Mmin**(1.35))/( (Mmax*Mmin)**(1.35))
+#Mmin, Mmax = 5, 30
+#Norm = 1/1.35*(Mmax**(1.35)-Mmin**(1.35))/( (Mmax*Mmin)**(1.35))
 def dndM(m):
     # Black hole mass distribution from 2003.03359
-    return 1/Norm*1/m**(2.35)
+#    return 1/Norm*1/m**(2.35)
+    return 1/m**(2.35)
 #%%
 
 #%%
@@ -63,22 +61,7 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
 #%%
 
 #%%
-def get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn = 10.*1E9*Year):
-
-    dUL = hTilde/hVal*dcrit
-
-    deltaT = tIn - tSR + tGW
-    xx = np.sqrt( deltaT**2. - 4.*dUL*tGW )
-
-    dminus = 1/2.*( deltaT - xx )
-    dplus = 1/2.*( deltaT + xx )
-    dmax_temp = np.array([dplus, dUL, tIn-tSR]).T  
-    
-    return dminus, np.min(dmax_temp, axis=2).T
-#%%
-
-#%%
-def get_d_plusminus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
+def get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
 
     dUL = hTilde/hVal*dcrit
 
@@ -92,6 +75,14 @@ def get_d_plusminus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
 #%%
 
 #%%
+def get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn):
+
+    dUL = hTilde/hVal*dcrit    
+    dmax_temp = np.array([dplus, dUL, tIn-tSR]).T  
+    return dminus, np.min(dmax_temp, axis=2).T
+#%%
+
+#%%
 def get_fdot_tobs(fdot0, tobs_over_tGW):
     return fdot0/(1. + tobs_over_tGW)**2
 #%%
@@ -99,7 +90,7 @@ def get_fdot_tobs(fdot0, tobs_over_tGW):
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
 
 #%%
-def get_vol_int_disc(rd, robs, dmin, dmax, tGW, hTilde, hVal, fdot0, fdotMax, n_phi = 101, n_rho = 99):
+def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, n_phi = 101, n_rho = 99):
 
     int_over_vol = np.zeros( dmin.shape )
     phi_list = np.linspace(0, 2*np.pi, n_phi)
@@ -133,24 +124,24 @@ def get_vol_int_disc(rd, robs, dmin, dmax, tGW, hTilde, hVal, fdot0, fdotMax, n_
             int_over_rho = np.trapz(integrand, rho_list, axis=1)
             int_over_vol[i_m, i_s] = np.trapz(int_over_rho, phi_list, axis=0)
 
-    return int_over_vol/(2*np.pi)
+    return int_over_vol/(2.*np.pi)
 #%%
 
 #%%
-def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, robs, tIn): 
+def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, dcrit, rd, robs, tIn, xdisc): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
-    dmin, dmax = get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
-    int_over_vol = get_vol_int_disc(rd, robs, dmin, dmax)
+    dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
+    dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
+    int_over_vol = get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax)
 
     fMList = dndM(MList)
     integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn
     integrand[np.isnan(integrand)] = 0
 
     intOvera = np.trapz(integrand, x=aList, axis=1)
-    res = np.trapz(fMList*intOvera, x=MList)
 
-    return res
+    return xdisc*np.trapz(fMList*intOvera, x=MList)
 #%%
 
 
@@ -158,48 +149,69 @@ def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, dcrit, rd, robs, tIn)
 ########## FUNCTIONS FOR BHs IN THE BULGE ##########
 
 #%%
-def get_vol_int_sphere(RMW, robs, dmin, dmax):
+#def get_vol_int_bulge(Rb, robs, dminusEn, dplusEn, dminusIn, dplusIn, dmin, dmax, tSR, tEn, hTilde, hVal, fdot0, fdotMax, n_phi = 101, n_theta = 105, n_r = 98):
+def get_vol_int_bulge(tSR, tGW, hTilde, hVal, fdot0, fdotMax, dcrit, Rb, robs, tIn, tEn, n_phi = 101, n_theta = 105, n_r = 98):
+
+    dminusEn, dplusEn = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tEn)
+    dminusIn, dplusIn = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
+    dmin, dmax = get_d_limits(tSR, dminusIn, dplusIn, hTilde, hVal, dcrit, tIn)
 
     int_over_vol = np.zeros( dmin.shape )
-    phi_list = np.linspace(0, 2*np.pi, 77)
-    theta_list = np.linspace(0, np.pi, 68)
-    robs_tilde = robs/RMW
+    r_list = np.geomspace(1E-5, 1E3, n_r)
+    phi_list = np.linspace(0, 2*np.pi, n_phi)
+    theta_list = np.linspace(0, np.pi, n_theta)
+    robs_tilde = robs/Rb
+    robs_tilde_sq = robs_tilde**2
 
-    r_list = np.geomspace(1E-5, 1, 78)
-    r_grid, phi_grid, theta_grid = np.meshgrid(phi_list, theta_list, r_list)
+    r_grid = r_list[np.newaxis, np.newaxis, :]
+    r_grid_sq = r_grid**2
+    sin_theta_grid = np.sin(theta_list)[:, np.newaxis, np.newaxis]
+    cos_phi_grid = np.cos(phi_list)[np.newaxis, :, np.newaxis]
+
+    #r_list = np.geomspace(1E-5, 1, n_r)
+    #r_grid, phi_grid, theta_grid = np.meshgrid(phi_list, theta_list, r_list)
 
     for i_m in range(dmin.shape[0]):
         for i_s in range(dmin.shape[1]):
 
-            dist_grid = np.sqrt( (r_grid)**2 + np.full(r_grid.shape, robs_tilde**2) 
-                                - 2*robs_tilde*r_grid*np.cos(phi_grid)*np.sin(theta_grid) )
+            dist_grid = np.sqrt( r_grid_sq + robs_tilde_sq 
+                                - 2*robs_tilde*r_grid*cos_phi_grid*sin_theta_grid )
 
-            integrand = r_grid**2/dist_grid
-            integrand[dist_grid < (dmin[i_m, i_s]/RMW)] = 0.
-            integrand[dist_grid > (dmax[i_m, i_s]/RMW)] = 0.
+            # require fdot to be small enough
+            tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
+            H = np.heaviside(fdotMax/get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+
+            integrand = H*r_grid_sq*np.exp(-r_grid)/dist_grid
+
+            cond1 = ( (dist_grid < (tEn - tSR[i_m, i_s])/Rb ) &
+                     ( (dist_grid < dminusIn[i_m, i_s]/Rb) | 
+                       ( (dminusEn[i_m, i_s]/Rb < dist_grid) & (dist_grid < dplusEn[i_m, i_s]/Rb)) | 
+                       (dist_grid > dplusIn[i_m, i_s]/Rb) ) )
+            cond2 = ( (dist_grid > (tEn - tSR[i_m, i_s])/Rb ) & 
+                     ( (dist_grid < dmin[i_m, i_s]/Rb) | (dist_grid > dmax[i_m, i_s]/Rb) ) )
+            
+            integrand[cond1] = 0.
+            integrand[cond2] = 0.
 
             int_over_r = np.trapz(integrand, r_list, axis=2)
             int_over_phi = np.trapz(int_over_r, phi_list, axis=1)
             int_over_vol[i_m, i_s] = np.trapz(int_over_phi, theta_list, axis=0)
 
-    return int_over_vol/(2.*np.pi)
+    return int_over_vol/(8.*np.pi)
 #%%
 
+
 #%%
-def get_dfdlogh_const_sphere(tSR, tGW, hTilde, MList, aList, hVal, dcrit, robs, RMW=20*kpc, tMW = 13.6*1E9*Year): 
+def get_dfdlogh_bulge(tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, dcrit, Rb, robs, tIn, tEn, xbulge): 
     '''Returns the differential pdf of h as a function of log10(h)'''
-
-    dmin, dmax = get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tMW)
-    int_over_vol = get_vol_int_sphere(RMW, robs, dmin, dmax)
+   
+    int_over_vol = get_vol_int_bulge(tSR, tGW, hTilde, hVal, fdot0, fdotMax, dcrit, Rb, robs, tIn, tEn)
 
     fMList = dndM(MList)
-    integrand = 3./2. * dcrit/RMW * int_over_vol * hTilde/hVal * tGW/tMW
+    integrand = dcrit/Rb * int_over_vol * hTilde/hVal * tGW/tIn
     integrand[np.isnan(integrand)] = 0
 
     intOvera = np.trapz(integrand, x=aList, axis=1)
-    res = np.trapz(fMList*intOvera, x=MList)
 
-    return res
+    return xbulge*np.trapz(fMList*intOvera, x=MList)
 #%%
-
-
