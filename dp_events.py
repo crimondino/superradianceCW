@@ -156,6 +156,7 @@ import seaborn as sns
 plt.rcdefaults()
 from matplotlib import font_manager
 from matplotlib import rcParams
+import matplotlib.lines as mlines
 rcParams['mathtext.rm'] = 'Times New Roman' 
 rcParams['text.usetex'] = True
 rcParams['font.family'] = 'times' #'sans-serif'
@@ -164,14 +165,132 @@ rcParams.update({'font.size':14})
 #%%
 
 #%%
+### Plot signal strain distribution df/dlogh
 ntot = 10
 dfdlogh = []
+dfdlogh_lowmass = []
 freq_GW = np.zeros(ntot)
 
 for i in range(ntot):
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i+1)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh.append(list_temp[1:])
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+    dfdlogh_lowmass.append(list_temp[1:])
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=16
+colors = sns.color_palette("mako", ntot) 
+
+for i_fGW in range(ntot):
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    line,=ax.plot(dfdlogh_lowmass[i_fGW][:, 0], dfdlogh_lowmass[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar{h}$', fontsize=font_s); 
+ax.set_title('Signal strain distribution', fontsize=font_s);
+legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
+                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
+ax.set_ylim(5E-8,0.4)
+ax.grid()
+
+line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 1$')
+line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'$M_{\rm max} = 20\ M_{\odot}, \chi_{\rm max} = 1$')
+line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 0.5$')
+# Add the second legend for the linestyles
+legend2 = ax.legend(handles=[line_style1, line_style2, line_style3], loc='upper right', handletextpad=0.5, frameon=False, 
+                   labelspacing=0.2, handlelength=1, fontsize=14)
+
+# Add the first legend back to the plot
+ax.add_artist(legend)
+
+fig.tight_layout()
+fig.savefig('figs/strain_dist_disc.pdf', bbox_inches="tight")
+#%%
+
+#%%
+### Plot signal strain distribution df/dlogh
+ntot = 10
+cum_dist = []
+cum_dist_lowmass = []
+freq_GW = np.zeros(ntot)
+
+for i in range(ntot):
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+
+    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
+    for i_h in range(len(list_temp[1:, 0]-1)):
+        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
+        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
+    cum_dist.append(cum_dist_temp)
+
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+
+    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
+    for i_h in range(len(list_temp[1:, 0]-1)):
+        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
+        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
+    cum_dist_lowmass.append(cum_dist_temp)
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=16
+colors = sns.color_palette("mako", ntot) 
+
+for i_fGW in range(ntot):
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0], cum_dist_lowmass[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashed')
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$P(h>\bar{h})$', fontsize=font_s); 
+ax.set_title('Cumulative signal strain distribution', fontsize=font_s);
+ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$', frameon=False, labelspacing=0.2, ncol=2, loc='lower left', fontsize=14)
+ax.set_xlim(4E-28,5E-25) #ax.set_ylim(5E-8,0.4)
+legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
+                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
+ax.grid()
+
+line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 1$')
+line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'$M_{\rm max} = 20\ M_{\odot}, \chi_{\rm max} = 1$')
+line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 0.5$')
+# Add the second legend for the linestyles
+legend2 = ax.legend(handles=[line_style1, line_style2, line_style3], loc='upper right', handletextpad=0.5, frameon=False, 
+                   labelspacing=0.2, handlelength=1, fontsize=14)
+
+# Add the first legend back to the plot
+ax.add_artist(legend)
+
+fig.tight_layout()
+#fig.savefig('figs/strain_cumulative_disc.pdf', bbox_inches="tight")
+#%%
+
+
+#%%
+### Plot for the scalar field to compare with sims results
+ntot = 6
+dfdlogh = []
+cum_dist = []
+cum_dist_masha = []
+masha_filenames = ['data/scalar/Fig15_'+str(i)+'_2003_03359.txt' for i in [2, 5, 8, 15, 20, 35]]
+Ntot = 1.E8
+freq_GW = np.zeros(ntot)
+
+for i in range(ntot):
+    list_temp = np.load('data/disc_events/dfdlogh_disc_scalar_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+    dfdlogh.append(list_temp[1:])
+
+    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
+    for i_h in range(len(list_temp[1:, 0]-1)):
+        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
+        cum_dist_temp[i_h, 1] = Ntot*np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
+    cum_dist.append(cum_dist_temp)
+
+    cum_dist_masha.append(np.loadtxt(masha_filenames[i]))
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=16
@@ -179,19 +298,23 @@ colors = sns.color_palette("deep", ntot)
 
 #for i_fGW in range(len(freq_GW)):
 for i_fGW in range(ntot):
-    #line,=ax.plot(hList, Ntot*dfdlogh_center_disc[i_fGW], linestyle='dashed', color = colors[i_fGW])
-    line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], label=str(round(freq_GW[i_fGW], 1)))
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    #line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], label=str(int(mu_temp)))
+    line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1], color = colors[i_fGW], label=str(round(mu_temp, 1)))
+    line,=ax.plot(cum_dist_masha[i_fGW][:, 0]*1.E-26, cum_dist_masha[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=2)
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar{h}$', fontsize=font_s); 
-ax.set_title('Galactic disc, Earth observer', fontsize=font_s);
-ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$')
-#ax.set_ylim(0.01,1E4)
+ax.set_xlabel(r'$h_0$', fontsize=font_s); ax.set_ylabel(r'Number of signals above $h_0$', fontsize=font_s); 
+ax.set_title('Scalar field, comparison with Sylvia et al.', fontsize=font_s);
+ax.legend(title='$\mu\ [10^{-13}\ {\mathrm eV}]$', frameon=False, labelspacing=0.2)
+ax.set_xlim(2E-27,3E-24); ax.set_ylim(1, 5E6)
 ax.grid()
-#ax.text(1E-30, 3000, r'$M_{\rm min} = 5\ M_{\odot},\ M_{\rm max} = 30\ M_{\odot}$', fontsize=12)
+ax.text(1.2E-25, 1.5E6, r'Sylvia (dashed)', fontsize=12)
+ax.text(1.2E-25, 5E5, r'Mine (solid)', fontsize=12)
 #ax.text(1E-30, 1200, r'$s_{\rm min} = 0,\ s_{\rm max} = 1$', fontsize=12)
 
 fig.tight_layout()
+fig.savefig('figs/scalar_comp.pdf', bbox_inches="tight")
 #%%
 
 #%%

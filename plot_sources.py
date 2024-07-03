@@ -83,7 +83,7 @@ def plot_sphere(ax, center, radius):
 #ax = fig.add_subplot(111, projection='3d')
 fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
-xlim = 13
+xlim = 9
 
 #u = np.linspace(0, 2 * np.pi, 500)
 #v = np.linspace(0, xlim, 50)
@@ -104,13 +104,13 @@ for i_p, p_name in enumerate(pipelines):
     y_temp = y[pulsars['suggested_pipeline'] == p_name]
     z_temp = z[pulsars['suggested_pipeline'] == p_name]
     dist_temp = pulsars[pulsars['suggested_pipeline'] == p_name]['DIST'].to_numpy()
-    ax.scatter(x_temp, y_temp, z_temp, s=50/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_name, alpha=0.7)
+    ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_name, alpha=0.7)
     for xi, yi, zi in zip(x_temp, y_temp, z_temp):
         ax.plot([xi, xi], [yi, yi], [zi, 0], color=colors[i_p], linestyle='--', linewidth=1)
 
 
-ax.scatter(0, 0, 0, color='k', s=50,  marker='x', label='GC')
-ax.scatter(0, -8.122, 0, color='k', s=100,  marker='$\odot$', label='Sun')
+ax.scatter(0, 0, 0, color='k', s=100,  marker='x', label='GC')
+ax.scatter(0, -8.122, 0, color='k', s=200,  marker='$\odot$', label='Sun')
 
 #plot_sphere(ax, [0, 0, 0], 3)
 plot_sphere(ax, [0, 0, 0], 8.122)
@@ -163,10 +163,12 @@ y_circle = 5 * np.sin(theta)
 z_circle = np.zeros_like(theta)  # Z-coordinate of the circle points
 ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
-ax.legend()
+ax.legend(fontsize=20, loc='lower left')
 # Data for three-dimensional scattered pointspoints
 #ax.scatter3D(0, 0, 0, color='k', marker='x');
 #ax.scatter3D(x, y, z, cmap='Greens');
+fig.tight_layout()
+fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
 #%%
 
 #%%
