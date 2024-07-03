@@ -19,7 +19,7 @@ def load_pulsars_fnc():
     df_fdots = df_fdots[~np.isnan(df_fdots['upper_limits'])]
     df_fdots['type'] = 'fdot'
 
-    columns_to_use = ['NAME', 'RAJ', 'DECJ', 'F0', 'F1', 'F_GW', 'upper_limits', 'type', 'suggested_pipeline',
+    columns_to_use = ['NAME', 'RAJ', 'DECJ', 'F0', 'F1', 'DIST', 'F_GW', 'upper_limits', 'type', 'suggested_pipeline',
                       'f range or resolution [Hz]', 'fdot range or resolution [Hz/s]']
     df_pulsars = pd.concat([df_triplets[columns_to_use], df_doublets[columns_to_use], df_fdots[columns_to_use]]) 
     df_pulsars.sort_values(by='F_GW', inplace=True)

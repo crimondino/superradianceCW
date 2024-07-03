@@ -7,8 +7,8 @@ import time
 
 from utils.my_units import *
 
-importlib.reload(sys.modules['utils.analytic_estimate_events'])
-importlib.reload(sys.modules['utils.load_pulsars'])
+#importlib.reload(sys.modules['utils.analytic_estimate_events'])
+#importlib.reload(sys.modules['utils.load_pulsars'])
 from utils.analytic_estimate_events import *
 from utils.load_pulsars import load_pulsars_fnc
 from superrad import ultralight_boson as ub
@@ -161,6 +161,37 @@ rcParams['text.usetex'] = True
 rcParams['font.family'] = 'times' #'sans-serif'
 font_manager.findfont('serif', rebuild_if_missing=True)
 rcParams.update({'font.size':14})
+#%%
+
+#%%
+ntot = 10
+dfdlogh = []
+freq_GW = np.zeros(ntot)
+
+for i in range(ntot):
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i+1)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+    dfdlogh.append(list_temp[1:])
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=16
+colors = sns.color_palette("deep", ntot) 
+
+#for i_fGW in range(len(freq_GW)):
+for i_fGW in range(ntot):
+    #line,=ax.plot(hList, Ntot*dfdlogh_center_disc[i_fGW], linestyle='dashed', color = colors[i_fGW])
+    line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], label=str(round(freq_GW[i_fGW], 1)))
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar{h}$', fontsize=font_s); 
+ax.set_title('Galactic disc, Earth observer', fontsize=font_s);
+ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$')
+#ax.set_ylim(0.01,1E4)
+ax.grid()
+#ax.text(1E-30, 3000, r'$M_{\rm min} = 5\ M_{\odot},\ M_{\rm max} = 30\ M_{\odot}$', fontsize=12)
+#ax.text(1E-30, 1200, r'$s_{\rm min} = 0,\ s_{\rm max} = 1$', fontsize=12)
+
+fig.tight_layout()
 #%%
 
 #%%

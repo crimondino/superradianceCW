@@ -23,10 +23,10 @@ print('Total number of NB pulsars with different frequency =',len(freq_GW))
 #%%
 
 #%%
-i_fGW = sys.argv[1]
+i_fGW = int(sys.argv[1])
 print('\nComputing pulsar number =', i_fGW)
-Mmin, Mmax = sys.argv[2], sys.argv[3]
-aMin, aMax = sys.argv[4], sys.argv[5]
+Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3])
+aMin, aMax = float(sys.argv[4]), float(sys.argv[5])
 print('\nMmin, Mmax =', Mmin, ' ', Mmax, 'aMin, aMax =', aMin, ' ', aMax)
 #%%
 
@@ -66,5 +66,5 @@ for i_h, hVal in enumerate(hList):
                                                          d_crit, r_d, rho_obs, tIn, x_disc)
 
 # Save results
-np.save('data/dfdlogh_disc_NB_'+str(i_fGW)+'.npy', dfdlogh_disc)
+np.save('data/disc_events/dfdlogh_disc_NB_'+str(i_fGW)+'.npy', dfdlogh_disc)
 #%%
