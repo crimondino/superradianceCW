@@ -166,9 +166,11 @@ rcParams.update({'font.size':14})
 
 #%%
 ### Plot signal strain distribution df/dlogh
-ntot = 10
+ntot = 11
 dfdlogh = []
 dfdlogh_lowmass = []
+dfdlogh_lowspin = []
+dfdlogh_pess = []
 freq_GW = np.zeros(ntot)
 
 for i in range(ntot):
@@ -178,30 +180,41 @@ for i in range(ntot):
     list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_lowmass.append(list_temp[1:])
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+    dfdlogh_lowspin.append(list_temp[1:])
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+    dfdlogh_pess.append(list_temp[1:])
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=16
 colors = sns.color_palette("mako", ntot) 
 
 for i_fGW in range(ntot):
-    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-    line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-    line,=ax.plot(dfdlogh_lowmass[i_fGW][:, 0], dfdlogh_lowmass[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
+    if i_fGW%2==0:
+        mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+        line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+        line,=ax.plot(dfdlogh_lowmass[i_fGW][:, 0], dfdlogh_lowmass[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
+        line,=ax.plot(dfdlogh_lowspin[i_fGW][:, 0], dfdlogh_lowspin[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
+        line,=ax.plot(dfdlogh_pess[i_fGW][:, 0], dfdlogh_pess[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashdot', linewidth=1)
 
 ax.set_xscale('log'); ax.set_yscale('log')
 ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar{h}$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
 legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
-ax.set_ylim(5E-8,0.4)
+ax.set_xlim(5E-28,1E-24); ax.set_ylim(4E-7,0.4)
 ax.grid()
 
-line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 1$')
-line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'$M_{\rm max} = 20\ M_{\odot}, \chi_{\rm max} = 1$')
-line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 0.5$')
+line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
+line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
+line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
+line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
 # Add the second legend for the linestyles
-legend2 = ax.legend(handles=[line_style1, line_style2, line_style3], loc='upper right', handletextpad=0.5, frameon=False, 
-                   labelspacing=0.2, handlelength=1, fontsize=14)
+legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
+                    handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
 
 # Add the first legend back to the plot
 ax.add_artist(legend)
@@ -212,9 +225,11 @@ fig.savefig('figs/strain_dist_disc.pdf', bbox_inches="tight")
 
 #%%
 ### Plot signal strain distribution df/dlogh
-ntot = 10
+ntot = 11
 cum_dist = []
 cum_dist_lowmass = []
+cum_dist_lowspin = []
+cum_dist_pess = []
 freq_GW = np.zeros(ntot)
 
 for i in range(ntot):
@@ -236,36 +251,59 @@ for i in range(ntot):
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowmass.append(cum_dist_temp)
 
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+
+    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
+    for i_h in range(len(list_temp[1:, 0]-1)):
+        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
+        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
+    cum_dist_lowspin.append(cum_dist_temp)
+
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'.npy')
+    freq_GW[i] = list_temp[0, 1]
+
+    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
+    for i_h in range(len(list_temp[1:, 0]-1)):
+        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
+        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
+    cum_dist_pess.append(cum_dist_temp)
+
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=16
 colors = sns.color_palette("mako", ntot) 
 
 for i_fGW in range(ntot):
-    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-    line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-    line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0], cum_dist_lowmass[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashed')
+    if i_fGW%2==0:
+        mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+        line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+        line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0], cum_dist_lowmass[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashed')
+        line,=ax.plot(cum_dist_lowspin[i_fGW][:, 0], cum_dist_lowspin[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dotted')
+        line,=ax.plot(cum_dist_pess[i_fGW][:, 0], cum_dist_pess[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashdot')
 
 ax.set_xscale('log'); ax.set_yscale('log')
 ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$P(h>\bar{h})$', fontsize=font_s); 
 ax.set_title('Cumulative signal strain distribution', fontsize=font_s);
 ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$', frameon=False, labelspacing=0.2, ncol=2, loc='lower left', fontsize=14)
-ax.set_xlim(4E-28,5E-25) #ax.set_ylim(5E-8,0.4)
+ax.set_xlim(5E-28,5E-25); ax.set_ylim(1E-7,0.7)
 legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
 ax.grid()
 
-line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 1$')
-line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'$M_{\rm max} = 20\ M_{\odot}, \chi_{\rm max} = 1$')
-line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'$M_{\rm max} = 30\ M_{\odot}, \chi_{\rm max} = 0.5$')
+line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
+line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
+line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
+line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
 # Add the second legend for the linestyles
-legend2 = ax.legend(handles=[line_style1, line_style2, line_style3], loc='upper right', handletextpad=0.5, frameon=False, 
-                   labelspacing=0.2, handlelength=1, fontsize=14)
+legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
+                    handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
 
 # Add the first legend back to the plot
 ax.add_artist(legend)
 
 fig.tight_layout()
-#fig.savefig('figs/strain_cumulative_disc.pdf', bbox_inches="tight")
+fig.savefig('figs/strain_cumulative_disc.pdf', bbox_inches="tight")
 #%%
 
 
@@ -280,7 +318,7 @@ Ntot = 1.E8
 freq_GW = np.zeros(ntot)
 
 for i in range(ntot):
-    list_temp = np.load('data/disc_events/dfdlogh_disc_scalar_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_scalar_5_20_0_1_'+str(i)+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh.append(list_temp[1:])
 
@@ -307,7 +345,7 @@ ax.set_xscale('log'); ax.set_yscale('log')
 ax.set_xlabel(r'$h_0$', fontsize=font_s); ax.set_ylabel(r'Number of signals above $h_0$', fontsize=font_s); 
 ax.set_title('Scalar field, comparison with Sylvia et al.', fontsize=font_s);
 ax.legend(title='$\mu\ [10^{-13}\ {\mathrm eV}]$', frameon=False, labelspacing=0.2)
-ax.set_xlim(2E-27,3E-24); ax.set_ylim(1, 5E6)
+ax.set_xlim(5E-27,3E-24); ax.set_ylim(1, 5E6)
 ax.grid()
 ax.text(1.2E-25, 1.5E6, r'Sylvia (dashed)', fontsize=12)
 ax.text(1.2E-25, 5E5, r'Mine (solid)', fontsize=12)
