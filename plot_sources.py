@@ -78,12 +78,9 @@ def plot_sphere(ax, center, radius):
     ax.plot_surface(x, y, z, color='gray', alpha=0.1)
 
 # 3D plot on a sphere
-#fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-#fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,7), projection='3d')
-#ax = fig.add_subplot(111, projection='3d')
-fig = plt.figure(figsize=(10, 10))
+fig = plt.figure(figsize=(20, 10))
 ax = fig.add_subplot(111, projection='3d')
-xlim = 9
+xlim = 10
 
 #u = np.linspace(0, 2 * np.pi, 500)
 #v = np.linspace(0, xlim, 50)
@@ -104,17 +101,17 @@ for i_p, p_name in enumerate(pipelines):
     y_temp = y[pulsars['suggested_pipeline'] == p_name]
     z_temp = z[pulsars['suggested_pipeline'] == p_name]
     dist_temp = pulsars[pulsars['suggested_pipeline'] == p_name]['DIST'].to_numpy()
-    ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_name, alpha=0.7)
+    ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_name, alpha=0.6)
     for xi, yi, zi in zip(x_temp, y_temp, z_temp):
         ax.plot([xi, xi], [yi, yi], [zi, 0], color=colors[i_p], linestyle='--', linewidth=1)
 
 
-ax.scatter(0, 0, 0, color='k', s=100,  marker='x', label='GC')
-ax.scatter(0, -8.122, 0, color='k', s=200,  marker='$\odot$', label='Sun')
+ax.scatter(0, 0, 0, color='k', s=200,  marker='x', label='GC')
+ax.scatter(0, -8.122, 0, color='k', s=300,  marker='$\odot$', label='Sun')
 
 #plot_sphere(ax, [0, 0, 0], 3)
-plot_sphere(ax, [0, 0, 0], 8.122)
-#plot_sphere(ax, [0, 0, 0], 20)
+#plot_sphere(ax, [0, 0, 0], 8.122)
+plot_sphere(ax, [0, 0, 0], np.max(np.sqrt(x**2 + y**2 + z**2)))
 
 ax.set_xlim(-xlim, xlim)
 ax.set_ylim(-xlim, xlim)
@@ -126,7 +123,6 @@ ax.zaxis.pane.fill = False
 ax.plot([-xlim, xlim], [0, 0], [0, 0], color='gray', linestyle='-', linewidth=0.5)
 ax.plot([-0, 0], [-xlim, xlim], [0, 0], color='gray', linestyle='-', linewidth=0.5)
 ax.plot([-0, 0], [0, 0], [-xlim, xlim], color='gray', linestyle='-', linewidth=0.5)
-
 
 # Remove the axes
 ax.w_xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))  # Set the x-axis line color to fully transparent
@@ -141,8 +137,9 @@ ax.set_xticklabels([])  # Remove x-axis labels
 ax.set_yticklabels([])  # Remove y-axis labels
 ax.set_zticklabels([])  # Remove z-axis labels
 
+
 # Set equal aspect ratio
-ax.set_box_aspect([1,1,1])
+ax.set_box_aspect([1, 1, 1])
 
 #n_points = 1000
 #X, Y = np.meshgrid(np.linspace(-xlim, xlim, n_points), np.linspace(-xlim, xlim, n_points))
@@ -163,10 +160,7 @@ y_circle = 5 * np.sin(theta)
 z_circle = np.zeros_like(theta)  # Z-coordinate of the circle points
 ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
-ax.legend(fontsize=20, loc='lower left')
-# Data for three-dimensional scattered pointspoints
-#ax.scatter3D(0, 0, 0, color='k', marker='x');
-#ax.scatter3D(x, y, z, cmap='Greens');
+ax.legend(fontsize=20, loc='best', bbox_to_anchor=(-0.5, 0.2, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
 fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
 #%%

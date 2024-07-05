@@ -204,7 +204,7 @@ ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar
 ax.set_title('Signal strain distribution', fontsize=font_s);
 legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
-ax.set_xlim(5E-28,1E-24); ax.set_ylim(4E-7,0.4)
+ax.set_xlim(5E-28,1E-24); ax.set_ylim(9E-8,0.4)
 ax.grid()
 
 line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
@@ -306,6 +306,49 @@ fig.tight_layout()
 fig.savefig('figs/strain_cumulative_disc.pdf', bbox_inches="tight")
 #%%
 
+#%%
+### Plot double-differential distribution df/dloghdnu
+
+n_freq = [0, 1, 8]
+xtable = []
+ytable = []
+dfdloghdnu = []
+freq_GW = np.zeros(len(n_freq))
+
+for i, i_f in enumerate(n_freq):
+    list_temp = np.load('data/disc_events/dfdloghdnu_disc_NB_5_30_0_1_'+str(i_f)+'.npy')
+    freq_GW[i] = list_temp[0, 2]
+    dim1, dim2 = int(list_temp[0, 0]), int(list_temp[0, 1])
+    #list_temp[1:, [0, 1]] = list_temp[1:, [1, 0]]
+    #xtable.append(list_temp[1:, 0].reshape(dim2, dim1))
+    #ytable.append(list_temp[1:, 1].reshape(dim2, dim1))
+    #dfdloghdnu.append(list_temp[1:, 2].reshape(dim2, dim1))
+    # Determine unique x and y values to create a mesh grid
+    xtable.append(np.unique(list_temp[1:, 0]))
+    ytable.append(np.unique(list_temp[1:, 1]))
+
+    list_temp[1:, 2][list_temp[1:, 2]==0] = np.nan
+
+    dfdloghdnu.append(list_temp[1:, 2].reshape(dim2, dim1))
+
+
+
+# Create a density plot
+fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15,5))
+
+for i in range(len(n_freq)):
+    #contour = ax[i].contourf(xtable[i], ytable[i], np.log10(dfdloghdnu[i]), cmap='viridis')
+    contour = ax[i].pcolormesh(xtable[i], ytable[i], np.log10(dfdloghdnu[i]), cmap='viridis')
+    cbar = fig.colorbar(contour, ax=ax[i])
+    ax[i].set_title(r'$f_{\mathrm{GW}}\ [Hz]$ = '+str(round(freq_GW[i],1))+' Hz', fontsize=font_s)
+    #cbar.set_label('log10(dfdloghdnu)')  # Optional: Set the colorbar label
+    ax[i].set_xlabel(r'M [$M_{\odot}$]', fontsize=font_s); 
+    ax[i].set_yscale('log')
+ax[0].set_ylabel(r'h', fontsize=font_s);
+
+fig.tight_layout()
+fig.savefig('figs/double_diff_test.pdf', bbox_inches="tight")
+#%%
 
 #%%
 ### Plot for the scalar field to compare with sims results
