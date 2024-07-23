@@ -67,7 +67,7 @@ for i_fGW in range(ntot):
 
 ax.set_xscale('log'); ax.set_yscale('log')
 ax.set_xlabel(r'$\bar{F}$ [mJy]', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar{F}$', fontsize=font_s); 
-ax.set_title('Signal flux density distribution', fontsize=font_s);
+ax.set_title('Radio flux density distribution', fontsize=font_s);
 legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc=(0.01, 0),  fontsize=14)
 ax.set_xlim(0.014,100); ax.set_ylim(3E-6,0.3)
@@ -158,7 +158,7 @@ ax.set_xscale('log'); ax.set_yscale('log')
 ax2.set_yscale('log'); ax2.set_yscale('log')
 ax.set_xlabel(r'$\bar{F}$ [mJy]', fontsize=font_s); ax.set_ylabel(r'$P(F>\bar{F})$', fontsize=font_s); 
 ax2.set_ylabel(r'$N_{\rm pulsars}(F>\bar{F})$', fontsize=font_s)
-ax.set_title('Cumulative signal flux density distribution', fontsize=font_s);
+ax.set_title('Cumulative radio flux density distribution', fontsize=font_s);
 ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$', frameon=False, labelspacing=0.2, ncol=2, loc='lower left', fontsize=14)
 ax.set_xlim(0.014,100); ax2.set_xlim(0.014,100); 
 ax.set_ylim(3E-6, 1); ax2.set_ylim(3E-6*facotr_y2, 1*facotr_y2)

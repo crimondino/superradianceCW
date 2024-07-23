@@ -29,6 +29,7 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
     tGW = np.zeros((len(MList), len(aList)))
     hTilde = np.zeros((len(MList), len(aList)))
     fGWdot = np.zeros((len(MList), len(aList)))
+    Fpeak = np.zeros((len(MList), len(aList)))
 
     mu = np.pi*freq_GW*Hz
     
@@ -44,20 +45,23 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
                     tGW[i_m, i_a] = wf.gw_time()*Second
                     hTilde[i_m, i_a] = wf.strain_char(0., dObs=(dcrit/Mpc) )
                     fGWdot[i_m, i_a] = wf.freqdot_gw(0)*(Hz/Second)
+                    Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*dcrit**2)/(erg/Second/CentiMeter**2)
                 else:
                     tSR[i_m, i_a] = np.nan
                     tGW[i_m, i_a] = np.nan
                     hTilde[i_m, i_a] = np.nan
                     fGWdot[i_m, i_a] = np.nan
+                    Fpeak[i_m, i_a] = np.nan
             except ValueError:
                 #print("ValueError", mbh, abh0, alpha)
                 tSR[i_m, i_a] = np.nan
                 tGW[i_m, i_a] = np.nan
                 hTilde[i_m, i_a] = np.nan
                 fGWdot[i_m, i_a] = np.nan
+                Fpeak[i_m, i_a] = np.nan
                 pass 
             
-    return tSR, tGW, hTilde, fGWdot
+    return tSR, tGW, hTilde, fGWdot, Fpeak
 #%%
 
 #%%
@@ -87,10 +91,16 @@ def get_fdot_tobs(fdot0, tobs_over_tGW):
     return fdot0/(1. + tobs_over_tGW)**2
 #%%
 
+#%%
+def get_F_tobs(Fpeak, tobs_over_tGW):
+    return Fpeak/(1. + tobs_over_tGW)
+#%%
+
+
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
 
 #%%
-def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, n_phi = 101, n_rho = 99):
+def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh, n_phi = 101, n_rho = 99):
 
     int_over_vol = np.zeros( dmin.shape )
     phi_list = np.linspace(0, 2*np.pi, n_phi)
@@ -116,8 +126,9 @@ def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, n_phi =
             # require fdot to be small enough
             tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
             H = np.heaviside(fdotMax/get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+            Hflux = np.heaviside(get_F_tobs(Fpeak[i_m, i_s], tobs_over_tGW)/FTh-1., 1.) 
 
-            integrand = H*rho_grid*np.exp(-rho_grid)/dist_grid
+            integrand = H*Hflux*rho_grid*np.exp(-rho_grid)/dist_grid
             integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
             integrand[dist_grid > (dmax[i_m, i_s]/rd)] = 0.
 
@@ -128,12 +139,12 @@ def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, n_phi =
 #%%
 
 #%%
-def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, dcrit, rd, robs, tIn, xdisc): 
+def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, Fpeak, FTh, dcrit, rd, robs, tIn, xdisc): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
     dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
     dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
-    int_over_vol = get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax)
+    int_over_vol = get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh)
 
     fMList = dndM(MList)
     integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn

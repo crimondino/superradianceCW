@@ -7,8 +7,8 @@ import time
 
 from utils.my_units import *
 
-#importlib.reload(sys.modules['utils.analytic_estimate_events'])
-#importlib.reload(sys.modules['utils.load_pulsars'])
+importlib.reload(sys.modules['utils.analytic_estimate_events'])
+importlib.reload(sys.modules['utils.load_pulsars'])
 from utils.analytic_estimate_events import *
 from utils.load_pulsars import load_pulsars_fnc
 from superrad import ultralight_boson as ub
@@ -31,6 +31,7 @@ print(len(freq_GW))
 # Grid of values of M, a and t
 #MList = np.geomspace(Mmin, Mmax, 108) 
 #aList = np.linspace(0, 1, 103)
+Mmin, Mmax = 5, 30
 MList = np.geomspace(Mmin, Mmax, 205) #113) 
 aMin, aMax = 0, 0.99
 aList = np.linspace(aMin, aMax, 198) #105)
@@ -46,7 +47,13 @@ bc = ub.UltralightBoson(spin=1, model="relativistic")
 #%%
 
 #%%
-t_SR, t_GW, h_Tilde, fGW_dot = get_hTilde_peak(bc, freq_GW[0], MList, aList, d_crit)
+t_SR, t_GW, h_Tilde, fGW_dot, F_peak = get_hTilde_peak(bc, freq_GW[0], MList, aList, d_crit)
+#%%
+
+#%%
+epsSq_fr = (1.E-8)**2 * 1.E-5
+BW = 1.4*GHz
+FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
 #%%
 
 #%%
@@ -60,7 +67,8 @@ norm_disc = 1/(aMax-aMin)
 norm_bulge = 1/(aMax-aMin)/(1-tEndB/tIn)
 
 hVal = 5.E-26
-dfdlogh_disc = norm_disc*get_dfdlogh_disc(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[0], d_crit, r_d, rho_obs, tIn, x_disc)
+dfdlogh_disc = norm_disc*get_dfdlogh_disc(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[0], epsSq_fr*F_peak, FTh,
+                                          d_crit, r_d, rho_obs, tIn, x_disc)
 #%%
 
 #%%
@@ -174,16 +182,17 @@ dfdlogh_pess = []
 freq_GW = np.zeros(ntot)
 
 for i in range(ntot):
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
+#    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_1_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_lowmass.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_lowspin.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_pess.append(list_temp[1:])
 
@@ -220,7 +229,7 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
 ax.add_artist(legend)
 
 fig.tight_layout()
-fig.savefig('figs/strain_dist_disc.pdf', bbox_inches="tight")
+fig.savefig('figs/strain_dist_disc_9M23.pdf', bbox_inches="tight")
 #%%
 
 #%%
@@ -233,7 +242,8 @@ cum_dist_pess = []
 freq_GW = np.zeros(ntot)
 
 for i in range(ntot):
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
+#    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_1_'+str(i)+'.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -242,7 +252,7 @@ for i in range(ntot):
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist.append(cum_dist_temp)
 
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -251,7 +261,7 @@ for i in range(ntot):
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowmass.append(cum_dist_temp)
 
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -260,7 +270,7 @@ for i in range(ntot):
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowspin.append(cum_dist_temp)
 
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'.npy')
+    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -303,7 +313,7 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
 ax.add_artist(legend)
 
 fig.tight_layout()
-fig.savefig('figs/strain_cumulative_disc.pdf', bbox_inches="tight")
+fig.savefig('figs/strain_cumulative_disc_9M23.pdf', bbox_inches="tight")
 #%%
 
 #%%

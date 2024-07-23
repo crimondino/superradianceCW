@@ -23,10 +23,10 @@ print('Total number of NB pulsars with different frequency =',len(freq_GW))
 #%%
 
 #%%
-i_fGW = 1#int(sys.argv[1])
+i_fGW = int(sys.argv[1]) #1
 print('\nComputing pulsar number =', i_fGW)
-Mmin, Mmax = 5, 30 #float(sys.argv[2]), float(sys.argv[3])
-aMin, aMax = 0, 1#float(sys.argv[4]), float(sys.argv[5])
+Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3]) #5, 30
+aMin, aMax = float(sys.argv[4]), float(sys.argv[5]) #0, 1
 print('\nMmin, Mmax =', Mmin, ' ', Mmax, 'aMin, aMax =', aMin, ' ', aMax)
 #%%
 
@@ -42,14 +42,14 @@ x_disc, x_bulge = 0.85, 0.15
 
 norm_mass= 1.35*(Mmax*Mmin)**(1.35)/(Mmax**(1.35)-Mmin**(1.35))
 norm_disc = 1/(aMax-aMin)*norm_mass
-#%%
+#%%dp
 
 #%%
 bc = ub.UltralightBoson(spin=1, model="relativistic") 
 #%%
 
 #%%
-t_SR, t_GW, h_Tilde, fGW_dot = get_hTilde_peak(bc, freq_GW[i_fGW], MList, aList, d_crit)
+t_SR, t_GW, h_Tilde, fGW_dot, F_peak = get_hTilde_peak(bc, freq_GW[i_fGW], MList, aList, d_crit)
 #%%
 
 #%%
@@ -58,13 +58,18 @@ dfdlogh_disc = np.zeros((len(hList)+1, 2))
 
 dfdlogh_disc[0, :] = [0, freq_GW[i_fGW]]
 
+epsSq_fr = (3.E-9)**2 * 1.E-5
+BW = 1.4*GHz
+FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
+
 for i_h, hVal in enumerate(hList):
     if (i_h%20 == 0):
         print('Computing h value number =',i_h)
     dfdlogh_disc[i_h+1, 0] = hVal 
     dfdlogh_disc[i_h+1, 1]  = norm_disc*get_dfdlogh_disc(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[i_fGW], 
+                                                         epsSq_fr*F_peak, FTh,
                                                          d_crit, r_d, rho_obs, tIn, x_disc)
 
 # Save results
-np.save('data/disc_events/dfdlogh_disc_NB_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'.npy', dfdlogh_disc)
+np.save('data/disc_events/dfdlogh_disc_NB_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_9M23.npy', dfdlogh_disc)
 #%%
