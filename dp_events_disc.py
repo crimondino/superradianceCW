@@ -42,7 +42,7 @@ x_disc, x_bulge = 0.85, 0.15
 
 norm_mass= 1.35*(Mmax*Mmin)**(1.35)/(Mmax**(1.35)-Mmin**(1.35))
 norm_disc = 1/(aMax-aMin)*norm_mass
-#%%dp
+#%%
 
 #%%
 bc = ub.UltralightBoson(spin=1, model="relativistic") 

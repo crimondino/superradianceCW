@@ -100,7 +100,7 @@ def get_F_tobs(Fpeak, tobs_over_tGW):
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
 
 #%%
-def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh, n_phi = 101, n_rho = 99):
+def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh, n_phi = 101, n_rho = 99):
 
     int_over_vol = np.zeros( dmin.shape )
     phi_list = np.linspace(0, 2*np.pi, n_phi)
@@ -123,12 +123,13 @@ def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, 
 
             dist_grid = np.sqrt( (rho_grid)**2 + robs_tilde_sq - 2*robs_tilde*rho_grid*cos_phi_grid )
 
-            # require fdot to be small enough
             tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
-            H = np.heaviside(fdotMax/get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
-            Hflux = np.heaviside(get_F_tobs(Fpeak[i_m, i_s], tobs_over_tGW)/FTh-1., 1.) 
+            # Upper bound on SR spin-up rate fdot
+            Hfdot = np.heaviside(fdotMax/get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+            # Lower bound on the SR radio flux luminosity
+            Hflux = np.heaviside(get_F_tobs(Fpeak[i_m, i_s], tobs_over_tGW)*( dcrit/(dist_grid*rd) )**2/FTh-1., 1.) 
 
-            integrand = H*Hflux*rho_grid*np.exp(-rho_grid)/dist_grid
+            integrand = Hfdot*Hflux*rho_grid*np.exp(-rho_grid)/dist_grid
             integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
             integrand[dist_grid > (dmax[i_m, i_s]/rd)] = 0.
 
@@ -144,7 +145,7 @@ def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, Fpeak
 
     dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
     dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
-    int_over_vol = get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh)
+    int_over_vol = get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh)
 
     fMList = dndM(MList)
     integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn

@@ -10,9 +10,11 @@ import seaborn as sns
 
 from utils.my_units import *
 
-importlib.reload(sys.modules['utils.load_pulsars'])
+#importlib.reload(sys.modules['utils.load_pulsars'])
 from utils.load_pulsars import load_pulsars_fnc
 #%%
+
+x=3
 
 #%%
 ### Loading csv file with pulsars data as a panda dataframe

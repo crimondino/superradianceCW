@@ -100,6 +100,9 @@ cum_dist_pess = []
 freq_GW = np.zeros(ntot)
 BW = 1.4*GHz
 unit_conv = (erg/Second/CentiMeter**2)/BW/(1.E-3*Jy)
+facotr_y2 = 0.5E8
+Fthreshold = 1.5
+obs_events, obs_events_lowmass, obs_events_lowspin, obs_events_pess = np.zeros((ntot, 2)), np.zeros((ntot, 2)), np.zeros((ntot, 2)), np.zeros((ntot, 2))
 
 for i in range(ntot):
     list_temp = np.load('data/pulsars_events/dfdlogF_disc_NB_5_30_0_1_'+str(i)+'_9M23.npy')
@@ -110,6 +113,10 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist.append(cum_dist_temp)
+    lum_above_th = (cum_dist_temp[:, 0]*unit_conv > Fthreshold)
+    obs_events[i, 0] = freq_GW[i]
+    obs_events[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0]*unit_conv - Fthreshold)).argmin(), 1]*facotr_y2
+    #np.trapz(cum_dist_temp[lum_above_th, 1]*facotr_y2, x=cum_dist_temp[lum_above_th, 0]*unit_conv)
 
     list_temp = np.load('data/pulsars_events/dfdlogF_disc_NB_5_20_0_1_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
@@ -119,6 +126,9 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowmass.append(cum_dist_temp)
+    lum_above_th = (cum_dist_temp[:, 0]*unit_conv > Fthreshold)
+    obs_events_lowmass[i, 0] = freq_GW[i]
+    obs_events_lowmass[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0]*unit_conv - Fthreshold)).argmin(), 1]*facotr_y2
 
     list_temp = np.load('data/pulsars_events/dfdlogF_disc_NB_5_30_0_0.5_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
@@ -128,6 +138,9 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowspin.append(cum_dist_temp)
+    lum_above_th = (cum_dist_temp[:, 0]*unit_conv > Fthreshold)
+    obs_events_lowspin[i, 0] = freq_GW[i]
+    obs_events_lowspin[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0]*unit_conv - Fthreshold)).argmin(), 1]*facotr_y2
 
     list_temp = np.load('data/pulsars_events/dfdlogF_disc_NB_5_20_0_0.3_'+str(i)+'_9M23.npy')
     freq_GW[i] = list_temp[0, 1]
@@ -137,16 +150,18 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_pess.append(cum_dist_temp)
+    lum_above_th = (cum_dist_temp[:, 0]*unit_conv > Fthreshold)
+    obs_events_pess[i, 0] = freq_GW[i]
+    obs_events_pess[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0]*unit_conv - Fthreshold)).argmin(), 1]*facotr_y2
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=16
 colors = sns.color_palette("mako", ntot) 
 # Create a second y-axis that shares the same x-axis
 ax2 = ax.twinx()
-facotr_y2 = 0.5E8
 
 for i_fGW in range(ntot):
-    if i_fGW%2==0:
+    if i_fGW%2==1:
         mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
         line,=ax.plot(cum_dist[i_fGW][:, 0]*unit_conv, cum_dist[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
         line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0]*unit_conv, cum_dist_lowmass[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashed')
@@ -180,5 +195,39 @@ ax.axvline(x=1.5, color='black', linewidth=0.8)
 ax.add_artist(legend)
 
 fig.tight_layout()
-fig.savefig('figs/flux_cumulative_disc_9M23.pdf', bbox_inches="tight")
+#fig.savefig('figs/flux_cumulative_disc_9M23.pdf', bbox_inches="tight")
+#%%
+
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=16
+colors = sns.color_palette("mako", 4) 
+ax2 = ax.twiny()
+
+ax.plot(obs_events[:, 0], obs_events[:, 1], color = colors[0], linewidth=1)
+ax.plot(obs_events_lowmass[:, 0], obs_events_lowmass[:, 1], color = colors[0], linewidth=1, linestyle='dashed')
+ax.plot(obs_events_lowspin[:, 0], obs_events_lowspin[:, 1], color = colors[0], linewidth=1, linestyle='dotted')
+ax.plot(obs_events_pess[:, 0], obs_events_pess[:, 1], color = colors[0], linewidth=1, linestyle='dashdot')
+ax2.plot(np.pi*obs_events[:, 0]*Hz/(1.E-13*eV), obs_events[:, 1], color = colors[0], linewidth=1)
+#ax.grid()
+
+#ax.set_xscale('log'); 
+ax.set_yscale('log')
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [Hz]$', fontsize=font_s)
+ax.set_ylabel(r'$N_{\rm pulsars}(F>1.5\ \mathrm{mJy})$', fontsize=font_s)
+ax2.set_xlabel(r'$\mu\ [10^{-13}\ \mathrm{eV}]$', fontsize=font_s)
+
+line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
+line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
+line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
+line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
+# Add the second legend for the linestyles
+legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
+                    handles=[line_style1, line_style2, line_style3, line_style4], loc='best', handletextpad=0.5, frameon=False, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
+
+ax.text(120, 2.E4, r'$\varepsilon = 3\times 10^{-9}$', fontsize=font_s)
+ax.text(120, 1.E4, r'$f_{r} = 10^{-5}$', fontsize=font_s)
+fig.tight_layout()
+fig.savefig('figs/Npulsars_disc_9M23.pdf', bbox_inches="tight")
 #%%
