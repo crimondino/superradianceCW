@@ -14,16 +14,21 @@ from utils.my_units import *
 from utils.load_pulsars import load_pulsars_fnc
 #%%
 
-x=3
 
 #%%
 ### Loading csv file with pulsars data as a panda dataframe
 pulsars = load_pulsars_fnc()
+
 #pulsars = pulsars[~pulsars['DECJ'].isna()]
 #pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!', '#REF!', '#VALUE!'])]
 pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!'])] # I couldn't find 'J1838-0022g' on the ATNF catalog. It is the only one with DECJ missing
 pulsars.replace('NB', 'Narrow Band', inplace=True) 
+pulsars.drop_duplicates(subset=['NAME', 'RAJ'], inplace=True)
 print(len(pulsars))
+
+for i in range(len(pulsars)):
+    if (pulsars['NAME'].iloc[i])[0] == 'B':
+        pulsars['NAME'].iloc[i] = pulsars['NAME'].iloc[i][10:]
 #%%
 
 
@@ -66,10 +71,23 @@ y = np.copy(xtemp) #xtemp*np.sqrt(2)/2 + y*np.sqrt(2)/2
 #%%
 
 
+# %%
+## list of sources from Tab. 1 in the paper
+tab1=np.array(['J1757-2745', 'J1641+3627A', 'J1748-2446C', 'J1910-5959B', 'J1801-0857A', 
+               'J1748-2021C', 'J0024-7204C', 'J1911+0101B', 'J0024-7204D', 'J0024-7204Z', 
+               'J0024-7204L', 'J0024-7204G', 'J1801-0857C', 'J0024-7204M', 'J1836-2354B', 
+               'J0024-7204N', 'J1748-3009', 'J0921-5202', 'J1122-3546', 'J1546-5925', 
+               'J1551-0658', 'J1748-2446T', 'J0514-4002N', 'J0514-4002C', 'J1824-2452E', 'J1838-0022g', 
+               'J1748-2446ac', 'J1940+26', 'J0024-7204Z', 'J1904+0836g', 'J1953+1844g', 'J1326-4728E', 
+               'J0125-2327', 'J1844+0028g', 'J1317-0157', 'J0418+6635', 'J0024-7204S', 'J1308-23', 
+               'J1342+2822F', 'J1803-3002B', 'J1823-3021E', 'J0024-7204H', 'J1930+1403g', 'J1624-39', 'J2045-68'])
+tab1[~np.isin(tab1, pulsars['NAME'])]
+# %%
+
 
 ############## Plots ##############
 
-#%%
+# %%
 # Function to plot a sphere
 def plot_sphere(ax, center, radius):
     u = np.linspace(0, 2 * np.pi, 100)
@@ -98,6 +116,7 @@ xlim = 10
 markers = ['D', 'o', '^', 's', 'd', 'p']
 colors = sns.color_palette("bright", len(pipelines)) 
 
+count=0
 for i_p, p_name in enumerate(pipelines): 
     x_temp = x[pulsars['suggested_pipeline'] == p_name]
     y_temp = y[pulsars['suggested_pipeline'] == p_name]
@@ -105,8 +124,9 @@ for i_p, p_name in enumerate(pipelines):
     dist_temp = pulsars[pulsars['suggested_pipeline'] == p_name]['DIST'].to_numpy()
     ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_name, alpha=0.6)
     for xi, yi, zi in zip(x_temp, y_temp, z_temp):
+        count+=1
         ax.plot([xi, xi], [yi, yi], [zi, 0], color=colors[i_p], linestyle='--', linewidth=1)
-
+print('Number of sources plotted: {}'.format(count))
 
 ax.scatter(0, 0, 0, color='k', s=200,  marker='x', label='GC')
 ax.scatter(0, -8.122, 0, color='k', s=300,  marker='$\odot$', label='Sun')
@@ -157,15 +177,15 @@ z_circle = np.zeros_like(theta)  # Z-coordinate of the circle points
 ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linestyle='--', linewidth=1)
 
 theta = np.linspace(0, 2*np.pi, 100)
-x_circle = 5 * np.cos(theta)
-y_circle = 5 * np.sin(theta)
+x_circle = 2.15 * np.cos(theta)
+y_circle = 2.15 * np.sin(theta)
 z_circle = np.zeros_like(theta)  # Z-coordinate of the circle points
 ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
 ax.legend(fontsize=20, loc='best', bbox_to_anchor=(-0.5, 0.2, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
 fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
-#%%
+# %%
 
 #%%
 # Plot using Healpy
