@@ -12,25 +12,15 @@ from utils.my_units import *
 
 #importlib.reload(sys.modules['utils.load_pulsars'])
 from utils.load_pulsars import load_pulsars_fnc
-#%%
 
 
 #%%
 ### Loading csv file with pulsars data as a panda dataframe
 pulsars = load_pulsars_fnc()
-
-#pulsars = pulsars[~pulsars['DECJ'].isna()]
-#pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!', '#REF!', '#VALUE!'])]
-pulsars = pulsars[~pulsars['DECJ'].isin(['#ERROR!'])] # I couldn't find 'J1838-0022g' on the ATNF catalog. It is the only one with DECJ missing
-pulsars.replace('NB', 'Narrow Band', inplace=True) 
-pulsars.drop_duplicates(subset=['NAME', 'RAJ'], inplace=True)
 print(len(pulsars))
-
-for i in range(len(pulsars)):
-    if (pulsars['NAME'].iloc[i])[0] == 'B':
-        pulsars['NAME'].iloc[i] = pulsars['NAME'].iloc[i][10:]
-#%%
-
+print('Min and max GW frequency: ', np.min(pulsars['F_GW']), np.max(pulsars['F_GW']), 'Hz')
+print('Min and max EM frequency: ', np.min(pulsars['F0']), np.max(pulsars['F0']), 'Hz')
+print('Min and max dp mass: ', np.pi*Hz*np.min(pulsars['F_GW'])/eV, np.pi*Hz*np.max(pulsars['F_GW'])/eV, 'eV')
 
 #%%
 # Example RA and Dec in degrees
@@ -38,19 +28,15 @@ ra_list = pulsars['RAJ'].to_numpy()
 dec_list = pulsars['DECJ'].to_numpy()
 coord_list = [ra_list[i]+' '+dec_list[i] for i in range(len(ra_list))]
 dist_list = [pulsars.iloc[i]['DIST']*u.kpc for i in range(len(ra_list))]
-#coord_list
-#%%
+pipelines = pulsars['suggested_pipeline'].unique() 
 
-#%%
-pipelines = pulsars['suggested_pipeline'].unique() #np.unique(pulsars['suggested_pipeline'].to_numpy())
-#%%
 
 #%%
 sky_coord = SkyCoord(coord_list, unit=(u.hourangle, u.deg), distance=dist_list, frame='icrs', obstime='J2000')
 galactic_coords = sky_coord.galactic
 l = galactic_coords.l.deg
 b = galactic_coords.b.deg
-#%%
+
 
 #%%
 # Define the Galactocentric frame with the distance from the Sun to the Galactic Center
@@ -68,21 +54,20 @@ z = galactocentric_coords.cartesian.z.to(u.kpc).value
 xtemp = np.copy(x)
 x = -np.copy(y) #x*np.sqrt(2)/2 - y*np.sqrt(2)/2 #
 y = np.copy(xtemp) #xtemp*np.sqrt(2)/2 + y*np.sqrt(2)/2
-#%%
 
 
 # %%
 ## list of sources from Tab. 1 in the paper
 tab1=np.array(['J1757-2745', 'J1641+3627A', 'J1748-2446C', 'J1910-5959B', 'J1801-0857A', 
-               'J1748-2021C', 'J0024-7204C', 'J1911+0101B', 'J0024-7204D', 'J0024-7204Z', 
+               'J1748-2021C', 'J0024-7204C', 'J1911+0101B', 'J0024-7204D', 
                'J0024-7204L', 'J0024-7204G', 'J1801-0857C', 'J0024-7204M', 'J1836-2354B', 
                'J0024-7204N', 'J1748-3009', 'J0921-5202', 'J1122-3546', 'J1546-5925', 
                'J1551-0658', 'J1748-2446T', 'J0514-4002N', 'J0514-4002C', 'J1824-2452E', 'J1838-0022g', 
                'J1748-2446ac', 'J1940+26', 'J0024-7204Z', 'J1904+0836g', 'J1953+1844g', 'J1326-4728E', 
                'J0125-2327', 'J1844+0028g', 'J1317-0157', 'J0418+6635', 'J0024-7204S', 'J1308-23', 
                'J1342+2822F', 'J1803-3002B', 'J1823-3021E', 'J0024-7204H', 'J1930+1403g', 'J1624-39', 'J2045-68'])
+print('Length of tab1:', len(tab1), '   Unique:', len(np.unique(tab1)))
 tab1[~np.isin(tab1, pulsars['NAME'])]
-# %%
 
 
 ############## Plots ##############
@@ -134,6 +119,7 @@ ax.scatter(0, -8.122, 0, color='k', s=300,  marker='$\odot$', label='Sun')
 #plot_sphere(ax, [0, 0, 0], 3)
 #plot_sphere(ax, [0, 0, 0], 8.122)
 plot_sphere(ax, [0, 0, 0], np.max(np.sqrt(x**2 + y**2 + z**2)))
+print('Max distance = ', np.max(np.sqrt(x**2 + y**2 + z**2)))
 
 ax.set_xlim(-xlim, xlim)
 ax.set_ylim(-xlim, xlim)
@@ -185,7 +171,7 @@ ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 ax.legend(fontsize=20, loc='best', bbox_to_anchor=(-0.5, 0.2, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
 fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
-# %%
+
 
 #%%
 # Plot using Healpy

@@ -87,8 +87,8 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
 ax.add_artist(legend)
 
 fig.tight_layout()
-fig.savefig('figs/flux_dist_disc_9M23.pdf', bbox_inches="tight")
-#%%
+#fig.savefig('figs/flux_dist_disc_9M23.pdf', bbox_inches="tight")
+
 
 #%%
 ### Plot flux density cumulative distribution \int df/dlogF : *** needs to be edited ***

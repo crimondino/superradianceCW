@@ -10,7 +10,7 @@ sys.path.append(MAIN_DIR)
 
 from my_units import *
 #from superra#d import ultralight_boson as ub
-#%%
+
 
 #%%
 #Mmin, Mmax = 5, 30
@@ -19,10 +19,9 @@ def dndM(m):
     # Black hole mass distribution from 2003.03359
 #    return 1/Norm*1/m**(2.35)
     return 1/m**(2.35)
-#%%
 
 #%%
-def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
+def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
     '''Function to compute the strain hTilde as a function of mass, spin at the peak of the SR cloud growth'''
 
     tSR = np.zeros((len(MList), len(aList)))
@@ -30,12 +29,10 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
     hTilde = np.zeros((len(MList), len(aList)))
     fGWdot = np.zeros((len(MList), len(aList)))
     Fpeak = np.zeros((len(MList), len(aList)))
-
-    mu = np.pi*freq_GW*Hz
+    Mcpeak = np.zeros((len(MList), len(aList)))
     
-#    for i_m, mbh in enumerate(tqdm(MList)):
     for i_m, mbh in enumerate(MList):
-        alpha = GN*mu*mbh*MSolar
+        alpha = alpha_grid[i_m, 0]
 
         for i_a, abh0 in enumerate(aList):
             try:
@@ -46,12 +43,14 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
                     hTilde[i_m, i_a] = wf.strain_char(0., dObs=(dcrit/Mpc) )
                     fGWdot[i_m, i_a] = wf.freqdot_gw(0)*(Hz/Second)
                     Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*dcrit**2)/(erg/Second/CentiMeter**2)
+                    Mcpeak[i_m, i_a] = wf.mass_cloud(0)
                 else:
                     tSR[i_m, i_a] = np.nan
                     tGW[i_m, i_a] = np.nan
                     hTilde[i_m, i_a] = np.nan
                     fGWdot[i_m, i_a] = np.nan
                     Fpeak[i_m, i_a] = np.nan
+                    Mcpeak[i_m, i_a] = np.nan
             except ValueError:
                 #print("ValueError", mbh, abh0, alpha)
                 tSR[i_m, i_a] = np.nan
@@ -59,10 +58,11 @@ def get_hTilde_peak(bc, freq_GW, MList, aList, dcrit):
                 hTilde[i_m, i_a] = np.nan
                 fGWdot[i_m, i_a] = np.nan
                 Fpeak[i_m, i_a] = np.nan
+                Mcpeak[i_m, i_a] = np.nan
                 pass 
             
-    return tSR, tGW, hTilde, fGWdot, Fpeak
-#%%
+    return tSR, tGW, hTilde, fGWdot, Fpeak, Mcpeak
+
 
 #%%
 def get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
@@ -76,7 +76,7 @@ def get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
     dplus = 1/2.*( deltaT + xx )
     
     return dminus, dplus
-#%%
+
 
 #%%
 def get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn):
@@ -84,17 +84,29 @@ def get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn):
     dUL = hTilde/hVal*dcrit    
     dmax_temp = np.array([dplus, dUL, tIn-tSR]).T  
     return dminus, np.min(dmax_temp, axis=2).T
-#%%
+
 
 #%%
 def get_fdot_tobs(fdot0, tobs_over_tGW):
     return fdot0/(1. + tobs_over_tGW)**2
-#%%
+
 
 #%%
 def get_F_tobs(Fpeak, tobs_over_tGW):
     return Fpeak/(1. + tobs_over_tGW)
+
 #%%
+### Electric field
+def Efield_fn(epsilon, alpha, mu, Nocc):
+    return 1/np.sqrt(np.pi)*epsilon*alpha**(3/2)*mu**2*np.sqrt(Nocc)
+
+### Pair production rate
+def Gamma_pair_fn(epsilon, mu, alpha, Nocc):
+    
+    E_field = Efield_fn(epsilon, alpha, mu, Nocc)
+    exp_factor = 4*MElectron**6*mu**2/((ElectronCharge*E_field)**4)
+    
+    return AlphaEM/(2*np.pi)*ElectronCharge*E_field/MElectron*np.exp(-exp_factor)
 
 
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
@@ -137,24 +149,27 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, 
             int_over_vol[i_m, i_s] = np.trapz(int_over_rho, phi_list, axis=0)
 
     return int_over_vol/(2.*np.pi)
-#%%
 
 #%%
-def get_dfdlogh_disc(tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, Fpeak, FTh, dcrit, rd, robs, tIn, xdisc): 
+def get_dfdlogh_disc(mu, eps, Mpeak, alpha_grid, tSR, tGW, hTilde, MList, aList, hVal, fdot0, fdotMax, Fpeak, FTh, dcrit, rd, robs, tIn, xdisc): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
     dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
     dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
     int_over_vol = get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, fdotMax, Fpeak, FTh)
 
+    ### Compute the minimum value of epsilon allowed when the cloud reaches saturation
+    Nocc = Mpeak*MSolar/mu
+    gamma_pair_ratio = Gamma_pair_fn(eps, mu, alpha_grid, Nocc)/(alpha_grid*mu)
+    Hplasma = np.heaviside(gamma_pair_ratio - 1., 1.)  
+
     fMList = dndM(MList)
-    integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn
+    integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn * Hplasma
     integrand[np.isnan(integrand)] = 0
 
     intOvera = np.trapz(integrand, x=aList, axis=1)
 
     return xdisc*np.trapz(fMList*intOvera, x=MList)
-#%%
 
 
 

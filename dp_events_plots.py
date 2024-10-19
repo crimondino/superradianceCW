@@ -1,163 +1,10 @@
 #%%
 import numpy as np
-import importlib
-import sys
 from tqdm import tqdm
 import time
 
 from utils.my_units import *
 
-#importlib.reload(sys.modules['utils.analytic_estimate_events'])
-#importlib.reload(sys.modules['utils.load_pulsars'])
-from utils.analytic_estimate_events import *
-from utils.load_pulsars import load_pulsars_fnc
-from superrad import ultralight_boson as ub
-#%%
-
-#%%
-### Loading csv file with pulsars data as a panda dataframe
-pulsars = load_pulsars_fnc()
-pulsars = pulsars[pulsars['suggested_pipeline'] == 'NB'] # select only those with narrow band search
-print(len(pulsars))
-# Removing frequency that are close to each over because they give similar results
-test, pulsars_ind = np.unique(np.round(pulsars['F_GW'].to_numpy(), -1), return_index=True)
-freq_GW = (pulsars['F_GW'].iloc[pulsars_ind]).to_numpy()
-fdot_range = (pulsars['fdot range or resolution [Hz/s]'].iloc[pulsars_ind]).to_numpy()
-h_UL = (pulsars['upper_limits'].iloc[pulsars_ind]).to_numpy()
-print(len(freq_GW))
-#%%
-
-#%%
-# Grid of values of M, a and t
-#MList = np.geomspace(Mmin, Mmax, 108) 
-#aList = np.linspace(0, 1, 103)
-Mmin, Mmax = 5, 30
-MList = np.geomspace(Mmin, Mmax, 205) #113) 
-aMin, aMax = 0, 0.99
-aList = np.linspace(aMin, aMax, 198) #105)
-
-# Parameters used for Galactic BH distribution
-d_crit = 5*kpc; r_d = 2.15*kpc; z_max = 75.*pc; R_b = 120*pc; rho_obs = 8.*kpc
-tIn, tEndB, tEndD = 10.*1E9*Year, 8.*1E9*Year, 0.
-x_disc, x_bulge = 0.85, 0.15
-#%%
-
-#%%
-bc = ub.UltralightBoson(spin=1, model="relativistic") 
-#%%
-
-#%%
-t_SR, t_GW, h_Tilde, fGW_dot, F_peak = get_hTilde_peak(bc, freq_GW[0], MList, aList, d_crit)
-#%%
-
-#%%
-epsSq_fr = (3.E-9)**2 * 1.E-5
-BW = 1.4*GHz
-FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
-#%%
-
-#%%
-hVal = 5.E-26
-dminusEn, dplusEn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tEndB)
-dminusIn, dplusIn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tIn)
-#%%
-
-#%%
-norm_disc = 1/(aMax-aMin)
-norm_bulge = 1/(aMax-aMin)/(1-tEndB/tIn)
-
-hVal = 5.E-26
-dfdlogh_disc = norm_disc*get_dfdlogh_disc(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[0], epsSq_fr*F_peak, FTh,
-                                          d_crit, r_d, rho_obs, tIn, x_disc)
-#%%
-
-#%%
-dminusEn, dplusEn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tEndB)
-dminusIn, dplusIn = get_d_minusplus(t_SR, t_GW, h_Tilde, hVal, d_crit, tIn)
-dmin, dmax = get_d_limits(t_SR, dminusIn, dplusIn, h_Tilde, hVal, d_crit, tIn)
-#%%
-
-#%%
-n_phi = 101; n_theta = 105; n_r = 98
-
-int_over_vol = np.zeros( dmin.shape )
-r_list = np.geomspace(1E-5, 1E3, n_r)
-phi_list = np.linspace(0, 2*np.pi, n_phi)
-theta_list = np.linspace(0, np.pi, n_theta)
-robs_tilde = rho_obs/R_b
-robs_tilde_sq = robs_tilde**2
-
-r_grid = r_list[np.newaxis, np.newaxis, :]
-r_grid_sq = r_grid**2
-sin_theta_grid = np.sin(theta_list)[:, np.newaxis, np.newaxis]
-cos_phi_grid = np.cos(phi_list)[np.newaxis, :, np.newaxis]
-dist_grid = np.sqrt( r_grid_sq + robs_tilde_sq - 2*robs_tilde*r_grid*cos_phi_grid*sin_theta_grid )
-#%%
-
-#%%
-i_m, i_s = 134, 165
-
-# require fdot to be small enough
-tobs_over_tGW = (h_Tilde[i_m, i_s]/hVal / dist_grid - 1.)
-H = np.heaviside(fdot_range[0]/get_fdot_tobs(fGW_dot[i_m, i_s], tobs_over_tGW)-1., 1.) 
-integrand = H*r_grid_sq*np.exp(-r_grid)/dist_grid
-#%%
-
-#%%
-cond1 = ( (dist_grid < (tEndB - t_SR[i_m, i_s])/R_b ) &
-            ( (dist_grid < dminusIn[i_m, i_s]/R_b) | 
-            ( (dminusEn[i_m, i_s]/R_b < dist_grid) & (dist_grid < dplusEn[i_m, i_s]/R_b)) | 
-            (dist_grid > dplusIn[i_m, i_s]/R_b) ) )
-cond2 = ( (dist_grid > (tEndB - t_SR[i_m, i_s])/R_b ) & 
-            ( (dist_grid < dmin[i_m, i_s]/R_b) | (dist_grid > dmax[i_m, i_s]/R_b) ) )
-
-integrand[cond1] = 0.
-integrand[cond2] = 0.
-
-int_over_r = np.trapz(integrand, r_list, axis=2)
-int_over_phi = np.trapz(int_over_r, phi_list, axis=1)
-int_over_vol[i_m, i_s] = np.trapz(int_over_phi, theta_list, axis=0)
-#%%
-
-#%%
-dfdlogh_bulge = norm_bulge*get_dfdlogh_bulge(t_SR, t_GW, h_Tilde, MList, aList, hVal, fGW_dot, fdot_range[0], d_crit, R_b, rho_obs, tIn, tEndB, x_bulge)
-#%%
-
-
-#%%
-hList = np.geomspace(9E-31, 5E-24, 70)
-#dfdlogh_center_sphere = np.zeros((len(freq_GW), len(hList)))
-#dfdlogh_sphere = np.zeros((len(freq_GW), len(hList)))
-dfdlogh_center_disc = np.zeros((len(freq_GW), len(hList)))
-dfdlogh_disc = np.zeros((len(freq_GW), len(hList)))
-Nevent = np.zeros((len(freq_GW)))
-Ntot = 3000
-#%%
-
-#%%
-start_time = time.time()
-for i_fGW in tqdm(range(4)):
-    t_SR, t_GW, h_peak, fdot_peak = get_hTilde_peak(bc, freq_GW[i_fGW], MList, aList, d_crit)
-
-    for i_h, hVal in enumerate(tqdm(hList)):  
-        #dfdlogh_center_sphere[i_fGW, i_h] = get_dfdlogh_const_center_sphere(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, RMW, tIn)
-        #dfdlogh_sphere[i_fGW, i_h] = get_dfdlogh_const_sphere(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, rho_obs, RMW, tIn)
-        dfdlogh_disc[i_fGW, i_h] = get_dfdlogh_disc(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, r_d, rho_obs, tIn)
-        #dfdlogh_center_disc[i_fGW, i_h] = get_dfdlogh_center_thin_disc(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, r_d, tIn)
-        dfdlogh_center_disc[i_fGW, i_h] = get_dfdlogh_center_disc(t_SR, t_GW, h_peak, MList, aList, hVal, d_crit, r_d, z_max, tIn)
-
-#    selh = (hList > h_UL[i_fGW])
-#    Nevent[i_fGW] = Ntot*np.trapz(dfdlogh[i_fGW][selh]/hList[selh], x=hList[selh])
-print("--- %s seconds ---" % (time.time() - start_time))
-#%%
-
-#%%
-for i_fGW in tqdm(range(4)):
-    print('Tot integral = ', np.trapz(dfdlogh_center_disc[i_fGW]/hList, x=hList))
-#%%
-
-
-############## Plots ##############
 #%%
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -170,50 +17,52 @@ rcParams['text.usetex'] = True
 rcParams['font.family'] = 'times' #'sans-serif'
 font_manager.findfont('serif', rebuild_if_missing=True)
 rcParams.update({'font.size':14})
-#%%
 
 #%%
-### Plot signal strain distribution df/dlogh
-ntot = 11
+### Plot signal strain distribution dn/dlogh
+ntot = 4
+nlist = [0, 3, 10, 23]
 dfdlogh = []
 dfdlogh_lowmass = []
 dfdlogh_lowspin = []
 dfdlogh_pess = []
 freq_GW = np.zeros(ntot)
+NBH = 1.E8
+file_name = 'dndlogh_'
+file_name_end = '_eps1Em8'
 
-for i in range(ntot):
-#    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_1_'+str(i)+'_9M23.npy')
+for i, ni in enumerate(nlist):
+    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_1_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'_9M23.npy')
+    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_1_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_lowmass.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'_9M23.npy')
+    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_0.5_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_lowspin.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'_9M23.npy')
+    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_0.3_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
     dfdlogh_pess.append(list_temp[1:])
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-font_s=16
+font_s=18
 colors = sns.color_palette("mako", ntot) 
 
 for i_fGW in range(ntot):
-    if i_fGW%2==0:
-        mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-        line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-        line,=ax.plot(dfdlogh_lowmass[i_fGW][:, 0], dfdlogh_lowmass[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
-        line,=ax.plot(dfdlogh_lowspin[i_fGW][:, 0], dfdlogh_lowspin[i_fGW][:, 1], color = colors[i_fGW], linestyle='dotted', linewidth=1)
-        line,=ax.plot(dfdlogh_pess[i_fGW][:, 0], dfdlogh_pess[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashdot', linewidth=1)
+    #if i_fGW%2==0:
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    line,=ax.plot(dfdlogh[i_fGW][:, 0], NBH*dfdlogh[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    line,=ax.plot(dfdlogh_lowmass[i_fGW][:, 0], NBH*dfdlogh_lowmass[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
+    line,=ax.plot(dfdlogh_lowspin[i_fGW][:, 0], NBH*dfdlogh_lowspin[i_fGW][:, 1], color = colors[i_fGW], linestyle='dotted', linewidth=1)
+    line,=ax.plot(dfdlogh_pess[i_fGW][:, 0], NBH*dfdlogh_pess[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashdot', linewidth=1)
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$df_{h}/d\log \bar{h}$', fontsize=font_s); 
+ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
 legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
-ax.set_xlim(5E-28,1E-24); ax.set_ylim(9E-8,0.4)
+ax.set_xlim(5E-28,1E-24); ax.set_ylim(9,6.E6)
 ax.grid()
 
 line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
@@ -224,28 +73,28 @@ line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'
 legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
                     handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
                     labelspacing=0.2, handlelength=1, fontsize=14)
-
 # Add the first legend back to the plot
 ax.add_artist(legend)
-
 fig.tight_layout()
-#fig.savefig('figs/strain_dist_disc_9M23.pdf', bbox_inches="tight")
-#%%
+#fig.savefig('figs/strain_dist_disk_9M23.pdf', bbox_inches="tight")
+fig.savefig('figs/strain_dist_eps1Em8.pdf', bbox_inches="tight")
 
 #%%
-### Plot signal strain distribution df/dlogh
-ntot = 11
+### Plot expected number of events as a function of the strain UL
+ntot = 4
+nlist = [0, 3, 10, 23]
 cum_dist = []
 cum_dist_lowmass = []
 cum_dist_lowspin = []
 cum_dist_pess = []
 freq_GW = np.zeros(ntot)
-facotr_y2 = 0.5E8
 obs_events, obs_events_lowmass, obs_events_lowspin, obs_events_pess = np.zeros((ntot, 2)), np.zeros((ntot, 2)), np.zeros((ntot, 2)), np.zeros((ntot, 2))
+NBH = 1.E8
+file_name = 'dndlogh_'
+file_name_end = '_eps1Em8'
 
-for i in range(ntot):
-#    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_'+str(i)+'.npy')
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_1_'+str(i)+'_9M23.npy')
+for i, ni in enumerate(nlist):
+    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_1_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -253,10 +102,10 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist.append(cum_dist_temp)
-    obs_events[i, 0] = freq_GW[i]
-    obs_events[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*facotr_y2
+    #obs_events[i, 0] = freq_GW[i]
+    #obs_events[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
 
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_1_'+str(i)+'_9M23.npy')
+    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_1_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -264,10 +113,10 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowmass.append(cum_dist_temp)
-    obs_events_lowmass[i, 0] = freq_GW[i]
-    obs_events_lowmass[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*facotr_y2
+    #obs_events_lowmass[i, 0] = freq_GW[i]
+    #obs_events_lowmass[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
 
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_30_0_0.5_'+str(i)+'_9M23.npy')
+    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_0.5_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -275,10 +124,10 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_lowspin.append(cum_dist_temp)
-    obs_events_lowspin[i, 0] = freq_GW[i]
-    obs_events_lowspin[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*facotr_y2
+    #obs_events_lowspin[i, 0] = freq_GW[i]
+    #obs_events_lowspin[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
 
-    list_temp = np.load('data/disc_events/dfdlogh_disc_NB_5_20_0_0.3_'+str(i)+'_9M23.npy')
+    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_0.3_'+str(ni)+file_name_end+'.npy')
     freq_GW[i] = list_temp[0, 1]
 
     cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
@@ -286,32 +135,27 @@ for i in range(ntot):
         cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
         cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
     cum_dist_pess.append(cum_dist_temp)
-    obs_events_pess[i, 0] = freq_GW[i]
-    obs_events_pess[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*facotr_y2
+    #obs_events_pess[i, 0] = freq_GW[i]
+    #obs_events_pess[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-font_s=16
+font_s=18
 colors = sns.color_palette("mako", ntot) 
-# Create a second y-axis that shares the same x-axis
-ax2 = ax.twinx()
 
 for i_fGW in range(ntot):
-    if i_fGW%2==0:
-        mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-        line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-        line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0], cum_dist_lowmass[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashed')
-        line,=ax.plot(cum_dist_lowspin[i_fGW][:, 0], cum_dist_lowspin[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dotted')
-        line,=ax.plot(cum_dist_pess[i_fGW][:, 0], cum_dist_pess[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, linestyle='dashdot')
-        ax2.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1]*facotr_y2, color = colors[i_fGW], linewidth=0)
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0], cum_dist_lowmass[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, linestyle='dashed')
+    line,=ax.plot(cum_dist_lowspin[i_fGW][:, 0], cum_dist_lowspin[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, linestyle='dotted')
+    line,=ax.plot(cum_dist_pess[i_fGW][:, 0], cum_dist_pess[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, linestyle='dashdot')
+    #ax2.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1]*facotr_y2, color = colors[i_fGW], linewidth=0)
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax2.set_xscale('log'); ax2.set_yscale('log')
-ax.set_xlabel(r'$\bar{h}$', fontsize=font_s); ax.set_ylabel(r'$P(h>\bar{h})$', fontsize=font_s); 
-ax2.set_ylabel(r'$N_{\rm ev}(h>\bar{h})$', fontsize=font_s)
-ax.set_title('Cumulative signal strain distribution', fontsize=font_s);
-ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$', frameon=False, labelspacing=0.2, ncol=2, loc='lower left', fontsize=14)
-ax.set_xlim(5E-28,5E-25); ax.set_ylim(1E-7,0.7)
-ax2.set_xlim(5E-28,5E-25); ax2.set_ylim(1E-7*facotr_y2,0.7*facotr_y2)
+ax.set_xlabel(r'$h_{0}^{95\%}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+ax.set_title('Number of expected events', fontsize=font_s);
+ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$', frameon=False, labelspacing=0.2, ncol=2, loc='lower left', fontsize=font_s)
+ax.set_xlim(5E-28,5E-25); ax.set_ylim(10,5.E6)
+#ax2.set_xlim(5E-28,5E-25); ax2.set_ylim(1E-7*facotr_y2,0.7*facotr_y2)
 legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
 ax.grid()
@@ -329,8 +173,8 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
 ax.add_artist(legend)
 
 fig.tight_layout()
-#fig.savefig('figs/strain_cumulative_disc_9M23.pdf', bbox_inches="tight")
-#%%
+#fig.savefig('figs/strain_cumulative_disk_9M23.pdf', bbox_inches="tight")
+fig.savefig('figs/nevents_eps1Em8.pdf', bbox_inches="tight")
 
 #%%
 ### Plot number of expected events as a function of frequency
