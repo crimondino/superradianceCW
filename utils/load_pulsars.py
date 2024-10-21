@@ -33,6 +33,7 @@ def load_pulsars_fnc():
         #df_pulsars[df_pulsars['NAME']==list_names[i]]['DECJ'] = list_decj[i]
 
     df_pulsars.replace('NB', 'Narrow Band', inplace=True) 
+    df_pulsars.replace('analysed in O3', 'targeted', inplace=True) 
     df_pulsars.drop_duplicates(subset=['NAME', 'RAJ'], inplace=True)
     
     return df_pulsars

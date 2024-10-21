@@ -10,7 +10,7 @@ import seaborn as sns
 
 from utils.my_units import *
 
-#importlib.reload(sys.modules['utils.load_pulsars'])
+importlib.reload(sys.modules['utils.load_pulsars'])
 from utils.load_pulsars import load_pulsars_fnc
 
 
@@ -189,7 +189,7 @@ hp.graticule()
 plt.legend(loc='lower left')
 plt.savefig('figs/sky_map_galactic.pdf', format='pdf')
 #plt.show()
-#%%
+
 
 #%%
 NSIDE = 2**5
