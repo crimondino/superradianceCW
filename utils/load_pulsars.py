@@ -37,4 +37,3 @@ def load_pulsars_fnc():
     df_pulsars.drop_duplicates(subset=['NAME', 'RAJ'], inplace=True)
     
     return df_pulsars
-#%%

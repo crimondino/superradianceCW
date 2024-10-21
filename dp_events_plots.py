@@ -1,7 +1,10 @@
 #%%
 import numpy as np
-from tqdm import tqdm
-import time
+
+import importlib                                                 # *** COMMENT OUT ***
+import sys                                                       # *** COMMENT OUT ***
+importlib.reload(sys.modules['utils.plot_functions'])  # *** COMMENT OUT ***
+from utils.plot_functions import *
 
 from utils.my_units import *
 
@@ -17,6 +20,45 @@ rcParams['text.usetex'] = True
 rcParams['font.family'] = 'times' #'sans-serif'
 font_manager.findfont('serif', rebuild_if_missing=True)
 rcParams.update({'font.size':14})
+
+#%%
+freq_GW = [0, 3, 10, 23]
+file_name_end = '_eps1Em8'
+dfdlogh, cum_dist = load_results(freq_GW, ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_'], file_name_end)
+
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=18
+colors = sns.color_palette("mako", ntot) 
+NBH = 1.E8
+
+for i_fGW in range(ntot):
+    #if i_fGW%2==0:
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    line,=ax.plot(dfdlogh[i_fGW][0][:, 0], NBH*dfdlogh[i_fGW][0][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
+ax.set_title('Signal strain distribution', fontsize=font_s);
+legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
+                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
+ax.set_xlim(5E-28,1E-24); ax.set_ylim(9,6.E6)
+ax.grid()
+
+line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
+line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
+line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
+line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
+# Add the second legend for the linestyles
+legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
+                    handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
+# Add the first legend back to the plot
+ax.add_artist(legend)
+fig.tight_layout()
+#fig.savefig('figs/strain_dist_disk_9M23.pdf', bbox_inches="tight")
+#fig.savefig('figs/strain_dist_eps1Em8.pdf', bbox_inches="tight")
+
 
 #%%
 ### Plot signal strain distribution dn/dlogh
@@ -371,28 +413,3 @@ ax.set_yscale('log')
 fig.tight_layout()
 fig.savefig('figs/Nexpected_new.pdf', bbox_inches="tight")
 #%%
-
-
-######### OLD CODE: uniform spatial distribution #########
-
-#%%
-hList = np.geomspace(1E-27, 1E-24, 300)
-dfdlogh = np.zeros((len(freq_GW), len(hList)))
-Nevent = np.zeros((len(freq_GW)))
-Ntot = 3000
-
-for i_fGW in tqdm(range(len(freq_GW))):
-    t_SR, t_GW, h_peak = get_hTilde_peak(bc, freq_GW[i_fGW], MList, aList, RMW)
-
-    for i_h, hVal in enumerate(hList):    
-        dfdlogh[i_fGW, i_h] = get_dfdlogh(t_SR, t_GW, h_peak, MList, aList, hVal)
-
-    selh = (hList > h_UL[i_fGW])
-    Nevent[i_fGW] = Ntot*np.trapz(dfdlogh[i_fGW][selh]/hList[selh], x=hList[selh])
-#%%
-
-for i_fGW in tqdm(range(len(freq_GW))):
-
-    selh = (hList > h_UL[i_fGW])
-    Nevent[i_fGW] = Ntot*np.trapz(dfdlogh[i_fGW][selh]/hList[selh], x=hList[selh])
-
