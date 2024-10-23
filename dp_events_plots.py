@@ -1,11 +1,11 @@
 #%%
 import numpy as np
 
-import importlib                                                 # *** COMMENT OUT ***
-import sys                                                       # *** COMMENT OUT ***
-importlib.reload(sys.modules['utils.plot_functions'])  # *** COMMENT OUT ***
+import importlib                                               
+import sys                                                      
+#importlib.reload(sys.modules['utils.plot_functions']) 
 from utils.plot_functions import *
-
+from utils.load_pulsars import load_pulsars_fnc
 from utils.my_units import *
 
 #%%
@@ -22,282 +22,129 @@ font_manager.findfont('serif', rebuild_if_missing=True)
 rcParams.update({'font.size':14})
 
 #%%
-freq_GW = [0, 3, 10, 23]
+freq_GW_ind = [0, 3, 10, 23]
 file_name_end = '_eps1Em8'
-dfdlogh, cum_dist = load_results(freq_GW, ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_'], file_name_end)
+BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
+dfdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
+
+### Loading csv file with pulsars data as a panda dataframe
+pulsars = load_pulsars_fnc()
+print(len(pulsars))
+freq_GW = pulsars.F_GW
+hUL = pulsars.upper_limits
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=18
-colors = sns.color_palette("mako", ntot) 
+colors = sns.color_palette("mako", len(freq_GW_ind)) 
+linestyles = ['solid','dashed','dashdot','dotted']
 NBH = 1.E8
 
-for i_fGW in range(ntot):
-    #if i_fGW%2==0:
+for i, i_fGW in enumerate(freq_GW_ind):
     mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-    line,=ax.plot(dfdlogh[i_fGW][0][:, 0], NBH*dfdlogh[i_fGW][0][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    line,=ax.plot(dfdlogh[i][0][:, 0], NBH*dfdlogh[i][0][:, 1], color = colors[i], linewidth=1, 
+                ls=linestyles[0], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    for i_BH in range(1, len(BHpop_list)):
+        line,=ax.plot(dfdlogh[i][i_BH][:, 0], NBH*dfdlogh[i][i_BH][:, 1], color = colors[i], linewidth=1, 
+                      ls=linestyles[i_BH])
+
+legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
+                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='upper left', fontsize=14)
+lines = []
+for i_BH, BHp_name in enumerate(BHpop_list):
+    lines.append(mlines.Line2D([], [], color='black', linestyle=linestyles[i_BH], label=BHp_name[2:4]+', '+BHp_name[-2:-1]))
+legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$',
+                    handles=lines, loc='upper right', handletextpad=0.5, frameon=False, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
+ax.add_artist(legend)
 
 ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlim(5E-28,1E-24); ax.set_ylim(10,2.E5)
+ax.grid()
 ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
-legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
-                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
-ax.set_xlim(5E-28,1E-24); ax.set_ylim(9,6.E6)
-ax.grid()
 
-line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
-line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
-line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
-line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
-# Add the second legend for the linestyles
-legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
-                    handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
-# Add the first legend back to the plot
-ax.add_artist(legend)
 fig.tight_layout()
-#fig.savefig('figs/strain_dist_disk_9M23.pdf', bbox_inches="tight")
-#fig.savefig('figs/strain_dist_eps1Em8.pdf', bbox_inches="tight")
+#fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
 
 
 #%%
-### Plot signal strain distribution dn/dlogh
-ntot = 4
-nlist = [0, 3, 10, 23]
-dfdlogh = []
-dfdlogh_lowmass = []
-dfdlogh_lowspin = []
-dfdlogh_pess = []
-freq_GW = np.zeros(ntot)
-NBH = 1.E8
-file_name = 'dndlogh_'
-file_name_end = '_eps1Em8'
-
-for i, ni in enumerate(nlist):
-    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_1_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-    dfdlogh.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_1_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-    dfdlogh_lowmass.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_0.5_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-    dfdlogh_lowspin.append(list_temp[1:])
-    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_0.3_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-    dfdlogh_pess.append(list_temp[1:])
-
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=18
-colors = sns.color_palette("mako", ntot) 
+colors = sns.color_palette("mako", len(freq_GW_ind)) 
 
-for i_fGW in range(ntot):
-    #if i_fGW%2==0:
+for i, i_fGW in enumerate(freq_GW_ind):
     mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-    line,=ax.plot(dfdlogh[i_fGW][:, 0], NBH*dfdlogh[i_fGW][:, 1], color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-    line,=ax.plot(dfdlogh_lowmass[i_fGW][:, 0], NBH*dfdlogh_lowmass[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=1)
-    line,=ax.plot(dfdlogh_lowspin[i_fGW][:, 0], NBH*dfdlogh_lowspin[i_fGW][:, 1], color = colors[i_fGW], linestyle='dotted', linewidth=1)
-    line,=ax.plot(dfdlogh_pess[i_fGW][:, 0], NBH*dfdlogh_pess[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashdot', linewidth=1)
+    line,=ax.plot(cum_dist[i][0][:, 0], NBH*cum_dist[i][0][:, 1], color = colors[i], linewidth=1, 
+                ls=linestyles[0], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    for i_BH in range(1, len(BHpop_list)):
+        line,=ax.plot(cum_dist[i][i_BH][:, 0], NBH*cum_dist[i][i_BH][:, 1], color = colors[i], linewidth=1, 
+                      ls=linestyles[i_BH])
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
-ax.set_title('Signal strain distribution', fontsize=font_s);
-legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
-                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
-ax.set_xlim(5E-28,1E-24); ax.set_ylim(9,6.E6)
+ax.set_xlim(5E-28,5E-25); ax.set_ylim(10,2.E5)
 ax.grid()
-
-line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
-line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
-line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
-line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
-# Add the second legend for the linestyles
-legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
-                    handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
-# Add the first legend back to the plot
-ax.add_artist(legend)
-fig.tight_layout()
-#fig.savefig('figs/strain_dist_disk_9M23.pdf', bbox_inches="tight")
-fig.savefig('figs/strain_dist_eps1Em8.pdf', bbox_inches="tight")
-
-#%%
-### Plot expected number of events as a function of the strain UL
-ntot = 4
-nlist = [0, 3, 10, 23]
-cum_dist = []
-cum_dist_lowmass = []
-cum_dist_lowspin = []
-cum_dist_pess = []
-freq_GW = np.zeros(ntot)
-obs_events, obs_events_lowmass, obs_events_lowspin, obs_events_pess = np.zeros((ntot, 2)), np.zeros((ntot, 2)), np.zeros((ntot, 2)), np.zeros((ntot, 2))
-NBH = 1.E8
-file_name = 'dndlogh_'
-file_name_end = '_eps1Em8'
-
-for i, ni in enumerate(nlist):
-    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_1_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-
-    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
-    for i_h in range(len(list_temp[1:, 0]-1)):
-        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
-        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
-    cum_dist.append(cum_dist_temp)
-    #obs_events[i, 0] = freq_GW[i]
-    #obs_events[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
-
-    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_1_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-
-    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
-    for i_h in range(len(list_temp[1:, 0]-1)):
-        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
-        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
-    cum_dist_lowmass.append(cum_dist_temp)
-    #obs_events_lowmass[i, 0] = freq_GW[i]
-    #obs_events_lowmass[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
-
-    list_temp = np.load('data/disc_events/'+file_name+'5_30_0_0.5_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-
-    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
-    for i_h in range(len(list_temp[1:, 0]-1)):
-        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
-        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
-    cum_dist_lowspin.append(cum_dist_temp)
-    #obs_events_lowspin[i, 0] = freq_GW[i]
-    #obs_events_lowspin[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
-
-    list_temp = np.load('data/disc_events/'+file_name+'5_20_0_0.3_'+str(ni)+file_name_end+'.npy')
-    freq_GW[i] = list_temp[0, 1]
-
-    cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )
-    for i_h in range(len(list_temp[1:, 0]-1)):
-        cum_dist_temp[i_h, 0] = list_temp[1+i_h, 0]
-        cum_dist_temp[i_h, 1] = np.trapz(list_temp[1+i_h:, 1]/list_temp[1+i_h:, 0], x=list_temp[1+i_h:, 0])
-    cum_dist_pess.append(cum_dist_temp)
-    #obs_events_pess[i, 0] = freq_GW[i]
-    #obs_events_pess[i, 1] = cum_dist_temp[(np.abs(cum_dist_temp[:, 0] - h_UL[i])).argmin(), 1]*NBH
-
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-font_s=18
-colors = sns.color_palette("mako", ntot) 
-
-for i_fGW in range(ntot):
-    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-    line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-    line,=ax.plot(cum_dist_lowmass[i_fGW][:, 0], cum_dist_lowmass[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, linestyle='dashed')
-    line,=ax.plot(cum_dist_lowspin[i_fGW][:, 0], cum_dist_lowspin[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, linestyle='dotted')
-    line,=ax.plot(cum_dist_pess[i_fGW][:, 0], cum_dist_pess[i_fGW][:, 1]*NBH, color = colors[i_fGW], linewidth=1, linestyle='dashdot')
-    #ax2.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1]*facotr_y2, color = colors[i_fGW], linewidth=0)
-
-ax.set_xscale('log'); ax.set_yscale('log')
 ax.set_xlabel(r'$h_{0}^{95\%}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.set_title('Number of expected events', fontsize=font_s);
-ax.legend(title='$f_{\mathrm{GW}}\ [Hz]$', frameon=False, labelspacing=0.2, ncol=2, loc='lower left', fontsize=font_s)
-ax.set_xlim(5E-28,5E-25); ax.set_ylim(10,5.E6)
-#ax2.set_xlim(5E-28,5E-25); ax2.set_ylim(1E-7*facotr_y2,0.7*facotr_y2)
-legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
-                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
+
+fig.tight_layout()
+#fig.savefig('figs/nevents_eps80.pdf', bbox_inches="tight")
+
+
+
+
+
+#%%
+freq_GW_ind = np.arange(26)
+file_name_end = '_eps1Em8'
+BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
+dfdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
+
+#%%
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=18
+colors = sns.color_palette("mako", len(freq_GW_ind)) 
+NBH = 1.E8
+nEV_list = np.zeros((len(freq_GW_ind), 1+len(BHpop_list)))
+colors = sns.color_palette("mako", len(BHpop_list)) 
+
+for i, i_fGW in enumerate(freq_GW_ind):
+    nEV_list[i, 0] = freq_GW.iloc[i_fGW]
+    loghUL = [np.log10(hUL.iloc[i_fGW])] #[-27, -26.3, -26, -25] #
+    for i_BH in range(len(BHpop_list)):
+        sel_non_zero = cum_dist[i][i_BH][:, 1]>0
+        log_dist = np.array([np.log10(cum_dist[i][i_BH][sel_non_zero, 0]), np.log10(NBH*cum_dist[i][i_BH][sel_non_zero, 1])]).T
+        [nEV_list[i, 1+i_BH]] = np.power(10, np.interp(loghUL, log_dist[:, 0], log_dist[:, 1], left=None, right=None, period=None))
+    #ax.plot(cum_dist[i][i_BH][:, 0], NBH*cum_dist[i][i_BH][:, 1], color = colors[i], linewidth=1, 
+    #        ls=linestyles[i_BH])
+    #ax.plot(hUL[i_fGW], nEV_list[i, 1],  'go')
+
+y = (np.min(nEV_list[:, 1:], axis=1) + np.max(nEV_list[:, 1:], axis=1)) / 2  # Central value
+yerr = [y - np.min(nEV_list[:, 1:], axis=1), np.max(nEV_list[:, 1:], axis=1) - y]  # Asymmetric error bars
+# Create error bar plot
+ax.errorbar(nEV_list[:, 0], y, yerr=yerr, fmt='None', capsize=5, capthick=2, ecolor=colors[0], label='$10^{-8}$')
+#for i_BH in range(len(BHpop_list)):
+#    ax.plot(nEV_list[:, 0], nEV_list[:, 1+i_BH], 'go', marker='*', color=colors[i_BH], alpha=0.7)
+ax.legend(title='$\epsilon$', handletextpad=0.5, frameon=True, 
+          labelspacing=0.2, ncol=2, columnspacing=1, handleheight=0.1, loc='upper right', fontsize=14)
+
+def forward(x):
+    return np.pi*Hz/(1.E-13*eV)*x 
+def inverse(x):
+    return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
+ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
+ax_top.set_xlabel(r'$m\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+
+ax.set_yscale('log')
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+#ax.set_title('Number of expected events for this analysis', fontsize=font_s);
+#for xc in nEV_list[:, 0]:
+#    plt.axvline(x=xc, color='gray', linestyle='-', linewidth=1, alpha=0.4)
 ax.grid()
 
-line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
-line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
-line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
-line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
-# Add the second legend for the linestyles
-legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
-                    handles=[line_style1, line_style2, line_style3, line_style4], loc='upper right', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
-
-# Add the first legend back to the plot
-ax.add_artist(legend)
-
 fig.tight_layout()
-#fig.savefig('figs/strain_cumulative_disk_9M23.pdf', bbox_inches="tight")
-fig.savefig('figs/nevents_eps1Em8.pdf', bbox_inches="tight")
+#fig.savefig('figs/nevents_analysis.pdf', bbox_inches="tight")
 
-#%%
-### Plot number of expected events as a function of frequency
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-font_s=16
-colors = sns.color_palette("mako", 4) 
-ax2 = ax.twiny()
-
-ax.plot(obs_events[:, 0], obs_events[:, 1], color = colors[0], linewidth=1)
-ax.plot(obs_events_lowmass[:, 0], obs_events_lowmass[:, 1], color = colors[0], linewidth=1, linestyle='dashed')
-ax.plot(obs_events_lowspin[:, 0], obs_events_lowspin[:, 1], color = colors[0], linewidth=1, linestyle='dotted')
-ax.plot(obs_events_pess[:, 0], obs_events_pess[:, 1], color = colors[0], linewidth=1, linestyle='dashdot')
-ax2.plot(np.pi*obs_events[:, 0]*Hz/(1.E-13*eV), obs_events[:, 1], color = colors[0], linewidth=1)
-#ax.grid()
-
-#ax.set_xscale('log'); 
-ax.set_yscale('log')
-ax.set_xlabel(r'$f_{\mathrm{GW}}\ [Hz]$', fontsize=font_s)
-ax.set_ylabel(r'$N_{\rm pulsars}(h>h_{\mathrm{UL}})$', fontsize=font_s)
-ax2.set_xlabel(r'$\mu\ [10^{-13}\ \mathrm{eV}]$', fontsize=font_s)
-
-line_style1 = mlines.Line2D([], [], color='black', linestyle='solid', label=r'30 $M_{\odot}$, 1')
-line_style2 = mlines.Line2D([], [], color='black', linestyle='dashed', label=r'20 $M_{\odot}$, 1')
-line_style3 = mlines.Line2D([], [], color='black', linestyle='dotted', label=r'30 $M_{\odot}$, 0.5')
-line_style4 = mlines.Line2D([], [], color='black', linestyle='dashdot', label=r'20 $M_{\odot}$, 0.3')
-# Add the second legend for the linestyles
-legend2 = ax.legend(title='$M_{\mathrm{max}}, \chi_{\mathrm{max}}$',
-                    handles=[line_style1, line_style2, line_style3, line_style4], loc='best', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
-
-ax.text(120, 2.E2, r'$\varepsilon = 3\times 10^{-9}$', fontsize=font_s)
-ax.text(120, 1.E2, r'$f_{r} = 10^{-5}$', fontsize=font_s)
-fig.tight_layout()
-fig.savefig('figs/Nhevents_disc_9M23.pdf', bbox_inches="tight")
-#%%
-
-
-
-#%%
-### Plot double-differential distribution df/dloghdnu
-
-n_freq = [0, 1, 8]
-xtable = []
-ytable = []
-dfdloghdnu = []
-freq_GW = np.zeros(len(n_freq))
-
-for i, i_f in enumerate(n_freq):
-    list_temp = np.load('data/disc_events/dfdloghdnu_disc_NB_5_30_0_1_'+str(i_f)+'.npy')
-    freq_GW[i] = list_temp[0, 2]
-    dim1, dim2 = int(list_temp[0, 0]), int(list_temp[0, 1])
-    #list_temp[1:, [0, 1]] = list_temp[1:, [1, 0]]
-    #xtable.append(list_temp[1:, 0].reshape(dim2, dim1))
-    #ytable.append(list_temp[1:, 1].reshape(dim2, dim1))
-    #dfdloghdnu.append(list_temp[1:, 2].reshape(dim2, dim1))
-    # Determine unique x and y values to create a mesh grid
-    xtable.append(np.unique(list_temp[1:, 0]))
-    ytable.append(np.unique(list_temp[1:, 1]))
-
-    list_temp[1:, 2][list_temp[1:, 2]==0] = np.nan
-
-    dfdloghdnu.append(list_temp[1:, 2].reshape(dim2, dim1))
-
-
-
-# Create a density plot
-fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(15,5))
-
-for i in range(len(n_freq)):
-    #contour = ax[i].contourf(xtable[i], ytable[i], np.log10(dfdloghdnu[i]), cmap='viridis')
-    contour = ax[i].pcolormesh(xtable[i], ytable[i], np.log10(dfdloghdnu[i]), cmap='viridis')
-    cbar = fig.colorbar(contour, ax=ax[i])
-    ax[i].set_title(r'$f_{\mathrm{GW}}\ [Hz]$ = '+str(round(freq_GW[i],1))+' Hz', fontsize=font_s)
-    #cbar.set_label('log10(dfdloghdnu)')  # Optional: Set the colorbar label
-    ax[i].set_xlabel(r'M [$M_{\odot}$]', fontsize=font_s); 
-    ax[i].set_yscale('log')
-ax[0].set_ylabel(r'h', fontsize=font_s);
-
-fig.tight_layout()
-fig.savefig('figs/double_diff_test.pdf', bbox_inches="tight")
-#%%
 
 #%%
 ### Plot for the scalar field to compare with sims results
@@ -394,7 +241,7 @@ ax.text(3E-30, 1000, r'$s_{\rm max} = 1$')
 
 fig.tight_layout()
 fig.savefig('figs/dndlogh_disc_comp.pdf', bbox_inches="tight")
-#%%
+
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
@@ -412,4 +259,3 @@ ax.set_yscale('log')
 
 fig.tight_layout()
 fig.savefig('figs/Nexpected_new.pdf', bbox_inches="tight")
-#%%

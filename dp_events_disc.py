@@ -61,7 +61,8 @@ dfdlogh_disc = np.zeros((len(hList)+1, 2))
 dfdlogh_disc[0, :] = [0, freq_GW[i_fGW]]
 dfdlogh_disc[1:, 0] = hList
 
-eps, fr = 1.E-8, 1.E-5
+log10eps = 8.5
+eps, fr = np.power(10, -log10eps), 1.E-5
 BW = 1.4*GHz
 FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
 
@@ -83,4 +84,4 @@ for i_h, hVal in enumerate(hList):
 
 #%%
 # Save results
-np.save('data/disc_events/dndlogh_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_eps1Em8.npy', dfdlogh_disc)
+np.save('data/disc_events/dndlogh_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_eps'+str(round(10*log10eps))+'.npy', dfdlogh_disc)

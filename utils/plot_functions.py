@@ -1,5 +1,7 @@
 import numpy as np
 
+DATA_DIR = '/Users/crimondino/Dropbox (PI)/myplasma/data'
+
 def load_results(freqGWi_list, BHp_list, file_name_end):
 
     dfdlogh = []
@@ -9,8 +11,7 @@ def load_results(freqGWi_list, BHp_list, file_name_end):
         dfdlogh_temp = []
         cum_dist_fGW_temp = []
         for BHp_name in BHp_list:
-            list_temp = np.load('data/disc_events/dndlogh_'+BHp_name+str(ni)+file_name_end+'.npy')
-            freqGWi_list[i] = list_temp[0, 1]
+            list_temp = np.load(DATA_DIR+'/disc_events/dndlogh_'+BHp_name+str(ni)+file_name_end+'.npy')
             dfdlogh_temp.append(list_temp[1:])
 
             cum_dist_temp = np.zeros( (len(list_temp[1:, 0]-1), 2) )   
