@@ -1,17 +1,17 @@
 #%%
 import numpy as np
-import importlib
-import sys
 import healpy as hp
-import matplotlib.pyplot as plt
 from astropy.coordinates import SkyCoord, Galactocentric
 import astropy.units as u
-import seaborn as sns
 
 from utils.my_units import *
 
-importlib.reload(sys.modules['utils.load_pulsars'])
+import importlib                                               
+import sys                                                      
+#importlib.reload(sys.modules['utils.load_pulsars'])
 from utils.load_pulsars import load_pulsars_fnc
+#importlib.reload(sys.modules['utils.plot_functions']) 
+from utils.plot_functions import *
 
 
 #%%
@@ -98,8 +98,11 @@ xlim = 10
 
 
 # Plot the 3D points
-markers = ['D', 'o', '^', 's', 'd', 'p']
-colors = sns.color_palette("bright", len(pipelines)) 
+#markers = ['D', 'o', '^', 's', 'd', 'p']
+#colors = sns.color_palette("bright", len(pipelines)) 
+markers = ['^', 'd', 's', 'P', 'o']
+colors = ['green', 'magenta', 'orange', 'steelblue', 'khaki']
+p_names = ['Narrowband', 'Targeted', '5vec-semicoh', 'All-sky', 'Binary']
 
 count=0
 for i_p, p_name in enumerate(pipelines): 
@@ -107,7 +110,7 @@ for i_p, p_name in enumerate(pipelines):
     y_temp = y[pulsars['suggested_pipeline'] == p_name]
     z_temp = z[pulsars['suggested_pipeline'] == p_name]
     dist_temp = pulsars[pulsars['suggested_pipeline'] == p_name]['DIST'].to_numpy()
-    ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_name, alpha=0.6)
+    ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
     for xi, yi, zi in zip(x_temp, y_temp, z_temp):
         count+=1
         ax.plot([xi, xi], [yi, yi], [zi, 0], color=colors[i_p], linestyle='--', linewidth=1)

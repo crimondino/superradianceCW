@@ -1,4 +1,16 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.rcdefaults()
+from matplotlib import font_manager
+from matplotlib import rcParams
+import matplotlib.lines as mlines
+from matplotlib.ticker import FuncFormatter, LogLocator
+rcParams['mathtext.rm'] = 'Times New Roman' 
+rcParams['text.usetex'] = True
+rcParams['font.family'] = 'times' #'sans-serif'
+font_manager.findfont('serif', rebuild_if_missing=True)
+rcParams.update({'font.size':14})
 
 DATA_DIR = '/Users/crimondino/Dropbox (PI)/myplasma/data'
 
@@ -24,3 +36,8 @@ def load_results(freqGWi_list, BHp_list, file_name_end):
         cum_dist.append(cum_dist_fGW_temp)
 
     return dfdlogh, cum_dist
+
+
+def log_format_func(value, tick_number):
+    exponent = int(np.log10(value))
+    return f"{int(value):d}" if ( (exponent <= 1) ) else f"$10^{{{exponent}}}$"

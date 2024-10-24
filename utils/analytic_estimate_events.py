@@ -141,6 +141,7 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, Pr
             rho_grid = rho_list[np.newaxis, :]
 
             dist_grid = np.sqrt( (rho_grid)**2 + robs_tilde_sq - 2*robs_tilde*rho_grid*cos_phi_grid )
+            dist_grid[dist_grid==0] = np.nan
 
             tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
             # Upper bound on SR spin-up rate fdot
@@ -153,6 +154,7 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, Pr
             integrand = Hfdot*Hflux*Hpower*rho_grid*np.exp(-rho_grid)/dist_grid
             integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
             integrand[dist_grid > (dmax[i_m, i_s]/rd)] = 0.
+            integrand[np.isnan(integrand)] = 0.
 
             int_over_rho = np.trapz(integrand, rho_list, axis=1)
             int_over_vol[i_m, i_s] = np.trapz(int_over_rho, phi_list, axis=0)
