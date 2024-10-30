@@ -128,7 +128,7 @@ class MatchedWaveform(BosonCloudWaveform):
         """Frequency of gravitational wave signal as a function of time"""
         Mc = self.mass_cloud(t)
         omegaR_vec = np.vectorize(self._cloud_model.omega_real, excluded=[0,1,2])
-        H = np.heaviside(t,1.0) 
+        H = np.heaviside(t,1.0)
         fgw = (H*omegaR_vec(self._m, self._mu*self._Mbh, self._abh, Mc/self._Mbh)/self._Mbh
                +(1.0-H)*(self._omegaR+(self._omegaR-self._omegaR0)*(Mc/self._Mcloud0-1)) 
               )/np.pi
@@ -197,16 +197,19 @@ class MatchedWaveform(BosonCloudWaveform):
     def phase_gw(self, t):
         """
         Return the gravitational wave phase [phi(t) as defined above] as a
-        function of time. Here we assume (take the approximation) that domega/dMc is a
-        constant. By convention, the phase is zero at t=0.
+        function of time. Exact when domega/dMc is a constant part plus a part linear in Mc.
+        By convention, the phase is zero at t=0.
         """
         t = t/self._tunit
         tau = self._Mbh**2/(self._Pgwt*self._Mcloud0)
-        domegaRdMc_t0 = self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbh, self._abh, 0)/self._Mbh**2 
+        # constant part in domegar_dmc(mc)
+        domegaRdMc_const_t0 = self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbh, self._abh, 0)/self._Mbh**2 
+        # linear part in domegar_dmc(mc)
+        domegaRdMc_lin_t0 = (self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbh, self._abh, self._Mcloud0)/(self._Mbh**3) - self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbh, self._abh, 0)/self._Mbh**3)/(2 * self._Mcloud0)
         omega_M0 = self._cloud_model.omega_real(self._m, self._mu*self._Mbh, self._abh, 0)/self._Mbh
         H = np.heaviside(t,1.0) 
         treg = (1.0-H)*t #to prevent overflow in exponential
-        phi = 2.0*(H*(omega_M0*t + domegaRdMc_t0*self._Mcloud0*tau*np.log(1.0+t/tau))
+        phi = 2.0*(H*(omega_M0*t + domegaRdMc_const_t0 * self._Mcloud0 * tau * np.log(1.0+t/tau) + domegaRdMc_lin_t0 * self._Mcloud0**2 * tau * (t/(t+tau)))
                    +(1.0-H)*(self._omegaR0*t+
                      (self._omegaR-self._omegaR0)*self._tauI*(np.exp(treg/self._tauI)-1.0)))
         return (phi)

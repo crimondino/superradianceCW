@@ -6,7 +6,10 @@ from .harmonics import sYlm
 from .units import set_units
 import warnings
 from scipy.interpolate import interp1d
-from scipy.integrate import cumtrapz
+try:
+    from scipy.integrate import cumulative_trapezoid as cumtrapz
+except ImportError:
+    from scipy.integrate import cumtrapz as cumtrapz
 
 class FullEvoWaveform(BosonCloudWaveform):
     def __init__(self, mu, Mbh0, abh0, cloud_model, units="natural"):
@@ -241,8 +244,8 @@ class FullEvoWaveform(BosonCloudWaveform):
     def phase_gw(self, t):
         """
         Return the gravitational wave phase [phi(t) as defined above] as a
-        function of time. Here we assume (take the approximation) that domega/dMc is a
-        constant. By convention, the phase is zero at t=0.
+        function of time. Exact when domega/dMc is a constant plus a piece 
+        linear in Mc. By convention, the phase is zero at t=0.
         """
         t = np.atleast_1d(t)/self._tunit
         phi = np.empty_like(t)
@@ -254,12 +257,12 @@ class FullEvoWaveform(BosonCloudWaveform):
                             +domegaRdMc_ti*self._Mci*self._tauI*(np.exp((t[t<=self._tci]-self._tci)/self._tauI)-1.0))
 
         omega_Mf = self._cloud_model.omega_real(self._m, self._mu*self._Mbhf, self._abhf, 0)/self._Mbhf
-        domegaRdMc_tf = self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbhf, self._abhf, self._Mcf/self._Mbhf)/self._Mbhf**2 
+        domegaRdMc_tf_const = self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbhf, self._abhf, 0)/self._Mbhf**2
+        domegaRdMc_tf_lin =  (self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbhf, self._abhf, self._Mcf/self._Mbhf)/(self._Mbhf**2) - self._cloud_model.domegar_dmc(self._m, self._mu*self._Mbhf, self._abhf, 0)/self._Mbhf**2)/(2 * self._Mcf/self._Mbhf)
         tau = self._Mbhf**2/(self._Pgwt*self._Mcf)
         phi[t>=self._tcf] = self._phi_gwf+2.0*(
                             omega_Mf*(t[t>=self._tcf]-self._tcf)
-                            +domegaRdMc_tf*self._Mcf*tau*np.log(1.0+(t[t>=self._tcf]-self._tcf)/tau))
-
+                            +domegaRdMc_tf_const*self._Mcf*tau*np.log(1.0+(t[t>=self._tcf]-self._tcf)/tau)) +domegaRdMc_tf_lin*self._Mcf*tau*((t[t>=self._tcf]-self._tcf)/((t[t>=self._tcf]-self._tcf)+tau))
         I = np.logical_and(t>self._tci,t<self._tcf)
         phi[I] = self._phi_gw(t[I])
         return (phi)

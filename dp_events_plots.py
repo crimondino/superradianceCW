@@ -102,7 +102,7 @@ eps_labels = ['$10^{-8}$', '$10^{-8.5}$', '$10^{-9}$']
 #freq_GW_ind = np.arange(42)
 freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
-colors = sns.color_palette("mako", len(log10eps_list)) 
+colors = sns.color_palette("crest", len(log10eps_list)) 
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
@@ -139,20 +139,20 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log')
+ax.set_yscale('log'); ax.set_ylim(1, 5E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-#fig.savefig('figs/nevents_analysis_loweps.pdf', bbox_inches="tight")
+fig.savefig('figs/nevents_analysis_loweps.pdf', bbox_inches="tight")
 
 
 #%%
-### Error bar plot for the number of events decreasing epsilon
+### Error bar plot for the number of events increasing epsilon
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=18
 NBH = 1.E8
@@ -162,12 +162,12 @@ print(len(pulsars))
 freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 
-log10eps_list = [8., 7.5]
-eps_labels = ['$10^{-8}$', '$10^{-7.5}$', ]
+log10eps_list = [6.5, 7., 7.5, 8.]
+eps_labels = ['$10^{-6.5}$','$10^{-7}$', '$10^{-7.5}$', '$10^{-8}$' ]
 #freq_GW_ind = np.arange(42)
 freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
-colors = sns.color_palette("mako", len(log10eps_list)) 
+colors = sns.color_palette("flare", len(log10eps_list)) 
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
@@ -204,16 +204,16 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log')
+ax.set_yscale('log'); ax.set_ylim(1, 5E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-#fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
+fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
 
 
 #%%
@@ -231,7 +231,7 @@ log10eps_list = [7.5, 8., 8.5, 9.]
 eps_labels = ['$10^{-7.5}$', '$10^{-8}$', '$10^{-8.5}$', '$10^{-9}$']
 freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
-colors = sns.color_palette("mako", len(log10eps_list)) 
+colors = sns.color_palette("crest", len(log10eps_list)) 
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
@@ -264,7 +264,7 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')

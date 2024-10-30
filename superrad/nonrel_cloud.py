@@ -2,6 +2,7 @@ from .cloud_model import CloudModel
 from scipy import interpolate
 from scipy import optimize
 import numpy as np
+import math
 
 class NonrelScalar(CloudModel):
     """
@@ -65,7 +66,7 @@ class NonrelScalar(CloudModel):
         omegaH = 0.5 * (abh/rplus)
         l = m 
         n = l + 1
-        Cnl = 2**(4*l+1) * np.math.factorial(n+l)/(n**(2*l+4)*np.math.factorial(n-l-1)) * (np.math.factorial(l)/(np.math.factorial(2*l) * np.math.factorial(2*l+1)))**2
+        Cnl = 2**(4*l+1) * math.factorial(n+l)/(n**(2*l+4)*math.factorial(n-l-1)) * (math.factorial(l)/(math.factorial(2*l) * math.factorial(2*l+1)))**2
         glm = 1.0
         for k in range(l):
             glm*= (k+1)**2 *(1-abh**2) + (abh * m - 2*rplus *omega)**2
@@ -81,7 +82,7 @@ class NonrelScalar(CloudModel):
             l = m
             n = l+1
             ql = 4*l+10
-            cnl = (16**(l+1)*l*(2*l-1)*np.math.factorial(2*l-1-1)**2*np.math.factorial(l+n+1-1)**2)/(n**(4*l+8)*(l+1)*np.math.factorial(l+1-1)**4*np.math.factorial(4*l+3-1)*np.math.factorial(n-l-1)**2)
+            cnl = (16**(l+1)*l*(2*l-1)*math.factorial(2*l-1-1)**2*math.factorial(l+n+1-1)**2)/(n**(4*l+8)*(l+1)*math.factorial(l+1-1)**4*math.factorial(4*l+3-1)*math.factorial(n-l-1)**2)
             return cnl*alpha**ql
     def strain_sph_harm(self, m, alpha, abh):
         omegaGW = 2.0*self.omega_real(m, alpha, abh, 0)
@@ -154,7 +155,7 @@ class NonrelVector(CloudModel):
         l = m -1
         n = l + 1
         j = l + 1 
-        Cnlj = 2**(2*l+2*j+1) * np.math.factorial(n+l)/(n**(2*l+4)* np.math.factorial(n-l-1)) * (np.math.factorial(l)/(np.math.factorial(l+j)*np.math.factorial(l+j+1)))**2 * (1+ 2*(1+l-j)*(1-l+j)/(l+j))**2
+        Cnlj = 2**(2*l+2*j+1) * math.factorial(n+l)/(n**(2*l+4)*math.factorial(n-l-1)) * (math.factorial(l)/(math.factorial(l+j)*math.factorial(l+j+1)))**2 * (1+ 2*(1+l-j)*(1-l+j)/(l+j))**2
         gjm = 1.0
         for k in range(j):
             gjm*= (k+1)**2 *(1-abh**2) + (abh * m - 2*rplus *omega)**2

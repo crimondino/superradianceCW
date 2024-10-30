@@ -15,7 +15,7 @@ class RelVector(CloudModel):
     Mcloud is boson cloud mass (as fraction of black hole mass) 
     m is azimuthal number of cloud
     """
-    def __init__(self):
+    def __init__(self,nonrel_freq_shift=False):
         """Caching tabulated and fit data"""
 
         """ 
@@ -26,10 +26,26 @@ class RelVector(CloudModel):
         m1_wi = m1_data['wi'].flatten()
         m1_a = m1_data['a'].flatten()
         m1_y = m1_data['y'].flatten()
-        m1_dwr = m1_data['dwr'].flatten()
         self._f1wr = interpolate.LinearNDInterpolator(list(zip(m1_y,m1_a)),m1_wr)
-        self._f1dwr = interpolate.LinearNDInterpolator(list(zip(m1_y,m1_a)),m1_dwr)
         self._f1wi = interpolate.LinearNDInterpolator(list(zip(m1_y,m1_a)),m1_wi)
+        #If _nonrel_freq_shift  is true, always use non-relativistic cloud mass dependent frequency shift
+        self._nonrel_freq_shift = nonrel_freq_shift
+
+        """
+        shift data (only for m=1):
+        """
+        if self._nonrel_freq_shift==False:
+            shift_data = np.load(Path(__file__).parent.joinpath('data/vector_freqshift_m1_interp.npz'))
+            alpha = shift_data['alpha'].flatten()
+            lin_shift = shift_data['lin_shift'].flatten()
+            quad_shift = shift_data['quad_shift'].flatten()
+            self._max_numeric_alpha = 0.57
+            self._lin_shift = interpolate.interp1d(alpha, lin_shift, kind='cubic')
+            self._quad_shift = interpolate.interp1d(alpha, quad_shift, kind='cubic')
+            self._min_numericalfit_alpha = 0.1
+            self._min_numericalfitandinterp_alpha = 0.09
+            self._max_numericalfitandinterp_alpha = max(alpha)
+
 
         """
         m=2 modes
@@ -39,9 +55,7 @@ class RelVector(CloudModel):
         m2_wi = m2_data['wi'].flatten()
         m2_a = m2_data['a'].flatten()
         m2_y = m2_data['y'].flatten()
-        m2_dwr = m2_data['dwr'].flatten()
         self._f2wr = interpolate.LinearNDInterpolator(list(zip(m2_y,m2_a)),m2_wr)
-        self._f2dwr = interpolate.LinearNDInterpolator(list(zip(m2_y,m2_a)),m2_dwr)
         self._f2wi = interpolate.LinearNDInterpolator(list(zip(m2_y,m2_a)),m2_wi)
 
         """
@@ -83,6 +97,21 @@ class RelVector(CloudModel):
         self._z5rm2 = interpolate.interp1d(m2_mu, m2_Z5r, kind='cubic')
         self._z5im2 = interpolate.interp1d(m2_mu, m2_Z5i, kind='cubic')
 
+        """ 
+        Fit numbers from data
+        """
+        self._freqshift_nonrel_extrapfromreldata_Mcalpha4 = -0.04481897
+        self._freqshift_nonrel_extrapfromreldata_Mcalpha5 = -1.94718171
+        self._freqshift_nonrel_extrapfromreldata_Mcalpha6 = -3.27331145
+        self._freqshift_nonrel_extrapfromreldata_Mc2alpha4 = -2.50867495
+        self._freqshift_nonrel_extrapfromreldata_Mc2alpha5 = 8.26894214
+        self._freqshift_highalpha_extrapfromreldata_Mcalpha4 = -2.76544476
+        self._freqshift_highalpha_extrapfromreldata_Mcalpha5 = 5.77381238
+        self._freqshift_highalpha_extrapfromreldata_Mcalpha6 = -4.056506
+        self._freqshift_highalpha_extrapfromreldata_Mc2alpha4 = -5.25668187
+        self._freqshift_highalpha_extrapfromreldata_Mc2alpha5 = 8.73330989
+        self._freqshift_highalpha_extrapfromreldata_Mc2alpha6 = 0
+
     def max_azi_num(self):
         """Maximum azimuthal number the model is defined for"""
         return 2
@@ -92,7 +121,7 @@ class RelVector(CloudModel):
     def omega_real(self, m, alpha, abh, Mcloud):
         """Returns real frequency of cloud oscillation"""
         yl, alphamax, Oh = self._y(m, alpha, abh)
-        dwr = self._deltaomega(m, alpha, abh)
+        dwr = self._deltaomega(m, alpha, abh, Mcloud)
         if (m==1):
             if (alpha>=0.05 and abh>=self._aswitch(m)):
                 wr = alpha*self._f1wr(yl, abh)
@@ -123,7 +152,7 @@ class RelVector(CloudModel):
             raise ValueError("Azimuthal index too large")
     def domegar_dmc(self, m, alpha, abh, Mcloud):
         """Returns derivative of real frequency of cloud w.r.t. cloud mass"""
-        return self._deltaomega(m, alpha, abh)
+        return self._lin_shift_withextrap(m,alpha,abh) * Mcloud**0 + 2* self._quad_shift_withextrap(m,alpha,abh) * Mcloud**1
     def omega_imag(self, m, alpha, abh):
         """Returns imaginary frequency, 
            i.e. growth rate of superradiant instability"""
@@ -220,35 +249,67 @@ class RelVector(CloudModel):
         alphamax = alphamaxC.real
         yl = (alpha-alpha0)/(alphamax-alpha0)
         return yl, alphamax, Oh
-    def _deltaomega(self,m,alpha,abh):
-        """Returns the cloud mass-independent frequency shift due to self-gravity"""
-        yl, alphamax, Oh = self._y(m, alpha, abh)
-        #Factor of 2 below is to go from gravitational potential energy to frequency shift
-        if (m==1):
-            if (alpha>=0.05 and abh>=self._aswitch(m)):
-                return -2.0*alpha*self._f1dwr(yl, abh)
-            else:
-                dwr = -5.0*alpha**3/16.0
-                dwr += -alpha*(-0.011413831834689237149*alpha**3+0.41745609670046540662*alpha**4-2.4755344267838781391*alpha**5+2.5945305106065412737*alpha**6)
-                return 2.0*dwr
-        elif (m==2):
-            if (alpha>=0.25 and abh>=self._aswitch(m)):
-                return -2.0*alpha*self._f2dwr(yl, abh)
-            else:
-                dwr = -93*alpha**3/1024.0
-                dwr += -alpha*(0.0031473331860228763446*alpha**3-0.0062807699451029961463*alpha**4-0.011951847200246173628*alpha**5)
-                return 2.0*dwr
-        else:
-            raise ValueError("Azimuthal index too large")
+    def _deltaomega(self,m,alpha,abh,Mcloud):
+        """Returns the frequency shift due to self-gravity divided by cloud mass (to give a sensible result for Mcloud -> 0)"""
+        return self._lin_shift_withextrap(m,alpha,abh) * Mcloud**0 + self._quad_shift_withextrap(m,alpha,abh) * Mcloud**1
     def _alphasat(self, m, abh):
         """Bisection to find saturation point, returns alpha at saturation"""
         yh, amaxh, Ohh = self._y(m, 0, abh)
         yl, amaxl, Ohl = self._y(m, 0, abh, 1.0)
         def _sat(al):
-            return self.omega_real(m, al, abh, 0)-m*0.5*abh/(1.0+np.sqrt(1.0-abh**2))
+            satout = self.omega_real(m, al, abh, 0)-m*0.5*abh/(1.0+np.sqrt(1.0-abh**2))
+            if (np.isnan(satout)): satout = 1e10
+            return satout
         return optimize.bisect(_sat, amaxl, amaxh) 
-    def _spinsat(self, m, al):
+    def _spinsat(self, m, al,mc=0):
         """Bisection to find saturation point, returns spin at saturation"""
+        mcin = mc
         def _sat(abh):
-            return self.omega_real(m, al, abh, 0)-m*0.5*abh/(1.0+np.sqrt(1.0-abh**2))
+            satout = self.omega_real(m, al, abh, mcin)-m*0.5*abh/(1.0+np.sqrt(1.0-abh**2))
+            if (np.isnan(satout)): satout = 1e10
+            return satout
         return optimize.bisect(_sat, self.max_spin(), 0)
+    def _shift_factor(self,m):
+        coeffs = [-(5/16), -(93/1024), -(793/18432), -(26333/1048576), -(43191/
+  2621440), -(1172755/100663296), -(28539857/3288334336), -(
+  1846943453/274877906944), -(14911085359/2783138807808), -(
+  240416274739/54975581388800), -(1936010885087/532163627843584), -(
+  62306843256889/20266198323167232), -(500960136802799/
+  190277084256403456), -(8051112929645937/3530822107858468864), -(
+  21555352563374699/10808639105689190400)]
+        return coeffs[m-1]
+    def _lin_shift_withextrap(self, m, alpha, abh):
+        if (m==1 and not self._nonrel_freq_shift):
+            non_rel = 2.0*self._shift_factor(m)*alpha**3
+            extrap_ha = non_rel + self._freqshift_highalpha_extrapfromreldata_Mcalpha4* alpha**4 + self._freqshift_highalpha_extrapfromreldata_Mcalpha5*alpha**5 + self._freqshift_highalpha_extrapfromreldata_Mcalpha6 *alpha **6
+            extrap = non_rel + self._freqshift_nonrel_extrapfromreldata_Mcalpha4* alpha**4 + self._freqshift_nonrel_extrapfromreldata_Mcalpha5*alpha**5 + self._freqshift_nonrel_extrapfromreldata_Mcalpha6 *alpha **6
+            if alpha >=self._min_numericalfitandinterp_alpha and alpha<=self._max_numeric_alpha:
+                if alpha>0.1:
+                    return self._lin_shift(alpha)
+                else:
+                    return self._lin_shift(alpha) * (alpha - self._min_numericalfitandinterp_alpha)/(self._min_numericalfit_alpha - self._min_numericalfitandinterp_alpha) + extrap * (1.0 - (alpha - self._min_numericalfitandinterp_alpha)/(self._min_numericalfit_alpha - self._min_numericalfitandinterp_alpha))
+            elif alpha <self._min_numericalfitandinterp_alpha:
+                return extrap
+            elif self._max_numeric_alpha <alpha <self._max_numericalfitandinterp_alpha:
+                return self._lin_shift(alpha) * (alpha - self._max_numericalfitandinterp_alpha)/(self._max_numeric_alpha-self._max_numericalfitandinterp_alpha) + extrap_ha * (1.0 - (alpha - self._max_numericalfitandinterp_alpha)/(self._max_numeric_alpha-self._max_numericalfitandinterp_alpha))
+            elif alpha >=self._max_numericalfitandinterp_alpha:
+                return extrap_ha
+        else:
+            return 2.0*self._shift_factor(m)*alpha**3
+    def _quad_shift_withextrap(self, m, alpha, abh):
+        if (m==1 and not self._nonrel_freq_shift):
+            extrap =  self._freqshift_nonrel_extrapfromreldata_Mc2alpha4* alpha**4 + self._freqshift_nonrel_extrapfromreldata_Mc2alpha5*alpha**5
+            extrap_ha =  self._freqshift_highalpha_extrapfromreldata_Mc2alpha4* alpha**4 + self._freqshift_highalpha_extrapfromreldata_Mc2alpha5*alpha**5 + self._freqshift_highalpha_extrapfromreldata_Mc2alpha6*alpha**6
+            if alpha >=self._min_numericalfitandinterp_alpha and alpha<=self._max_numeric_alpha:
+                if alpha>0.1:
+                    return self._quad_shift(alpha)
+                else:
+                    return self._quad_shift(alpha) * (alpha - self._min_numericalfitandinterp_alpha)/(self._min_numericalfit_alpha - self._min_numericalfitandinterp_alpha) + extrap * (1.0 - (alpha - self._min_numericalfitandinterp_alpha)/(self._min_numericalfit_alpha - self._min_numericalfitandinterp_alpha))
+            elif alpha<self._min_numericalfitandinterp_alpha:
+                return extrap
+            elif alpha>self._max_numeric_alpha:
+                return extrap_ha
+        else:
+            return 0
+
+
