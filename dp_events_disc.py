@@ -2,9 +2,9 @@
 import numpy as np
 import sys
 
-import importlib                                                 # *** COMMENT OUT ***
-import sys                                                       # *** COMMENT OUT ***
-importlib.reload(sys.modules['utils.analytic_estimate_events'])  # *** COMMENT OUT ***
+#import importlib                                                 # *** COMMENT OUT ***
+#import sys                                                       # *** COMMENT OUT ***
+#importlib.reload(sys.modules['utils.analytic_estimate_events'])  # *** COMMENT OUT ***
 from utils.analytic_estimate_events import *
 from utils.load_pulsars import load_pulsars_fnc
 from superrad import ultralight_boson as ub
@@ -22,20 +22,20 @@ fdot_range = pulsars['fdot range or resolution [Hz/s]'].to_numpy()
 
 #%%
 #i_fGW = int(sys.argv[1]) 
-i_fGW = 35 # *** COMMENT OUT ***
+i_fGW = 11 # *** COMMENT OUT ***
 print('\nComputing pulsar number =', i_fGW, ', GW freq. = ', freq_GW[i_fGW], ' Hz', flush=True)
 #Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3]) 
 #aMin, aMax = float(sys.argv[4]), float(sys.argv[5])
 Mmin, Mmax = 5, 30 # *** COMMENT OUT ***
-aMin, aMax = 0, 0.99  # *** COMMENT OUT ***
+aMin, aMax = 0, 1  # *** COMMENT OUT ***
 print('\nMmin, Mmax =', Mmin, ' ', Mmax, 'aMin, aMax =', aMin, ' ', aMax, flush=True)
 
 #%%
 # Grid of values of M, a and t
-#MList = np.geomspace(Mmin, Mmax, 205)
-#aList = np.linspace(aMin, aMax, 198) 
-MList = np.geomspace(Mmin, Mmax, 205) # *** COMMENT OUT ***
-aList = np.linspace(aMin, aMax, 198)  # *** COMMENT OUT ***
+MList = np.geomspace(Mmin, Mmax, 205)
+aList = np.linspace(aMin, aMax, 198) 
+#MList = np.geomspace(Mmin, Mmax, 205) # *** COMMENT OUT ***
+#aList = np.linspace(aMin, aMax, 198)  # *** COMMENT OUT ***
 
 mu = np.pi*freq_GW[i_fGW]*Hz
 alpha_grid = (GN*mu*MList*MSolar)[:, None]
@@ -52,11 +52,13 @@ norm_disc = 1/(aMax-aMin)*norm_mass
 bc = ub.UltralightBoson(spin=1, model="relativistic") 
 
 #%%
-t_SR, t_GW, h_Tilde, fGW_dot, F_peak, M_peak, Power_ratio_peak = get_hTilde_peak(bc, alpha_grid, MList, aList, d_crit)
+#t_SR, t_GW, h_Tilde, fGW_dot, F_peak, M_peak, Power_ratio_peak = get_hTilde_peak(bc, alpha_grid, MList, aList, d_crit)
+t_SR, t_GW, h_Tilde, fGW_dot, F_peak, M_peak, tEMtGW_Ratio = get_hTilde_peak(bc, alpha_grid, MList, aList, d_crit)
 
 #%%
 #hList = np.geomspace(5E-28, 1E-24, 121)
-hList = np.geomspace(5E-28, 1E-23, 121) # *** COMMENT OUT ***
+#hList = np.geomspace(5.E-27, 6.E-24, 121)
+hList = np.geomspace(5E-24, 6E-23, 4) # *** COMMENT OUT ***
 dfdlogh_disc = np.zeros((len(hList)+1, 2))
 dfdlogh_disc[0, :] = [0, freq_GW[i_fGW]]
 dfdlogh_disc[1:, 0] = hList
@@ -76,7 +78,7 @@ else:
 for i_h, hVal in enumerate(hList):
     if (i_h%20 == 0):
         print('Computing h value number =',i_h, flush=True)
-    dfdlogh_disc[i_h+1, 1] = norm_disc*get_dfdlogh_disc(mu, eps, M_peak, alpha_grid, Power_ratio_peak, t_SR, t_GW, h_Tilde, MList, aList, hVal, 
+    dfdlogh_disc[i_h+1, 1] = norm_disc*get_dfdlogh_disc(mu, eps, M_peak, alpha_grid, tEMtGW_Ratio, t_SR, t_GW, h_Tilde, MList, aList, hVal, 
                                                         fGW_dot_rescaled, F_peak_rescaled, d_crit, r_d, rho_obs, tIn, x_disc)
     
 
@@ -88,4 +90,4 @@ for i_h, hVal in enumerate(hList):
 
 #%%
 # Save results
-#np.save('data/disc_events/dndlogh_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_eps'+str(round(10*log10eps))+'.npy', dfdlogh_disc)
+#np.save('data/disc_events/dndlogh_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_eps'+str(round(10*log10eps))+'_testPEM.npy', dfdlogh_disc)

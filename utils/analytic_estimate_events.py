@@ -34,7 +34,8 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
     fGWdot = np.zeros((len(MList), len(aList)))
     Fpeak = np.zeros((len(MList), len(aList)))
     Mcpeak = np.zeros((len(MList), len(aList)))
-    PowerRatiopeak = np.zeros((len(MList), len(aList)))
+    #PowerRatiopeak = np.zeros((len(MList), len(aList)))
+    tEMtGWRatio = np.zeros((len(MList), len(aList)))
     
     for i_m, mbh in enumerate(MList):
         alpha = alpha_grid[i_m, 0]
@@ -49,7 +50,8 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
                     fGWdot[i_m, i_a] = wf.freqdot_gw(0)*(Hz/Second)
                     Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*dcrit**2)/(erg/Second/CentiMeter**2)
                     Mcpeak[i_m, i_a] = wf.mass_cloud(0)
-                    PowerRatiopeak[i_m, i_a] =  wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
+                    #PowerRatiopeak[i_m, i_a] =  wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
+                    tEMtGWRatio[i_m, i_a] = wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
                 else:
                     tSR[i_m, i_a] = np.nan
                     tGW[i_m, i_a] = np.nan
@@ -57,7 +59,7 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
                     fGWdot[i_m, i_a] = np.nan
                     Fpeak[i_m, i_a] = np.nan
                     Mcpeak[i_m, i_a] = np.nan
-                    PowerRatiopeak[i_m, i_a] =  np.nan
+                    tEMtGWRatio[i_m, i_a] =  np.nan
             except ValueError:
                 #print("ValueError", mbh, abh0, alpha)
                 tSR[i_m, i_a] = np.nan
@@ -66,10 +68,10 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
                 fGWdot[i_m, i_a] = np.nan
                 Fpeak[i_m, i_a] = np.nan
                 Mcpeak[i_m, i_a] = np.nan
-                PowerRatiopeak[i_m, i_a] =  np.nan
+                tEMtGWRatio[i_m, i_a] =   np.nan
                 pass 
             
-    return tSR, tGW, hTilde, fGWdot, Fpeak, Mcpeak, PowerRatiopeak
+    return tSR, tGW, hTilde, fGWdot, Fpeak, Mcpeak, tEMtGWRatio#PowerRatiopeak
 
 
 #%%
@@ -98,6 +100,11 @@ def get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn):
 def get_fdot_tobs(fdot0, tobs_over_tGW):
     return fdot0/(1. + tobs_over_tGW)**2
 
+def get_fdot_tobs_exact(fdot0, tauRatio, tobs_over_tGW):
+    return fdot0*np.exp(tobs_over_tGW/tauRatio)/(tauRatio - (1.+tauRatio)*np.exp(tobs_over_tGW/tauRatio) )**2
+
+def get_Mcfrac_tobs_Ratio(tauRatio, tobs_over_tGW):
+    return (np.exp(tobs_over_tGW/tauRatio)*(1. + tauRatio) - tauRatio )/(1. + tobs_over_tGW)
 
 #%%
 def get_F_tobs(Fpeak, tobs_over_tGW):
@@ -106,7 +113,7 @@ def get_F_tobs(Fpeak, tobs_over_tGW):
 #%%
 def Efield_fn(epsilon, alpha, mu, Nocc):
     '''SR cloud electric field'''
-    return 1/np.sqrt(np.pi)*epsilon*alpha**(3/2)*mu**2*np.sqrt(Nocc)
+    return 1./np.sqrt(np.pi)*epsilon*alpha**(3/2)*mu**2*np.sqrt(Nocc)
 
 def Gamma_pair_fn(epsilon, mu, alpha, Nocc):
     '''Pair production rate from photon-assisted Schwinger'''
@@ -119,7 +126,7 @@ def Gamma_pair_fn(epsilon, mu, alpha, Nocc):
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
 
 #%%
-def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, Pratiopeak_eps, n_phi = 101, n_rho = 99):
+def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, tauRatio_eps, n_phi = 101, n_rho = 99):
 
     int_over_vol = np.zeros( dmin.shape )
     phi_list = np.linspace(0, 2*np.pi, n_phi)
@@ -145,11 +152,13 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, Pr
 
             tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
             # Upper bound on SR spin-up rate fdot
-            Hfdot = np.heaviside(1./get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+            #Hfdot = np.heaviside(1./get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+            Hfdot = np.heaviside(1./get_fdot_tobs_exact(fdot0[i_m, i_s], tauRatio_eps[i_m, i_s], tobs_over_tGW)-1., 1.)  # using the correct time evolution
             # Lower bound on the SR radio flux luminosity
             Hflux = np.heaviside(get_F_tobs(Fpeak[i_m, i_s], tobs_over_tGW)*( dcrit/(dist_grid*rd) )**2-1., 1.) 
-            # Upper bound on the EM power emitted such that P_GW > P_EM
-            Hpower = np.heaviside(get_F_tobs(Pratiopeak_eps[i_m, i_s], tobs_over_tGW)-1., 1.)
+            # Upper bound on the EM power emitted such that Mc(t) power law time evolution is correct within 10%
+            #Hpower = np.heaviside(get_F_tobs(Pratiopeak_eps[i_m, i_s], tobs_over_tGW)-1., 1.)
+            Hpower = np.heaviside(0.1 - np.abs(get_Mcfrac_tobs_Ratio(tauRatio_eps[i_m, i_s], tobs_over_tGW) - 1.), 1.)            
 
             integrand = Hfdot*Hflux*Hpower*rho_grid*np.exp(-rho_grid)/dist_grid
             integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
@@ -162,13 +171,14 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, Pr
     return int_over_vol/(2.*np.pi)
 
 #%%
-def get_dfdlogh_disc(mu, eps, Mpeak, alpha_grid, Pratiopeak, tSR, tGW, hTilde, MList, aList, hVal, fdot0, Fpeak, dcrit, rd, robs, tIn, xdisc): 
+#def get_dfdlogh_disc(mu, eps, Mpeak, alpha_grid, Pratiopeak, tSR, tGW, hTilde, MList, aList, hVal, fdot0, Fpeak, dcrit, rd, robs, tIn, xdisc): 
+def get_dfdlogh_disc(mu, eps, Mpeak, alpha_grid, tauRatio, tSR, tGW, hTilde, MList, aList, hVal, fdot0, Fpeak, dcrit, rd, robs, tIn, xdisc): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
     dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
     dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
-    Pratiopeak_eps = Pratiopeak/eps**2.
-    int_over_vol = get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, Pratiopeak_eps)
+    tauRatio_eps = tauRatio/eps**2.
+    int_over_vol = get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, tauRatio_eps)
 
     ### Compute the minimum value of epsilon allowed when the cloud reaches saturation
     Nocc = Mpeak*MSolar/mu

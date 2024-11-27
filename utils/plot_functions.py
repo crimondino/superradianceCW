@@ -6,6 +6,9 @@ from matplotlib import font_manager
 from matplotlib import rcParams
 import matplotlib.lines as mlines
 from matplotlib.ticker import FuncFormatter, LogLocator
+from matplotlib.collections import LineCollection
+from matplotlib.colors import Normalize
+import matplotlib.cm as cm
 rcParams['mathtext.rm'] = 'Times New Roman' 
 rcParams['text.usetex'] = True
 rcParams['font.family'] = 'times' #'sans-serif'

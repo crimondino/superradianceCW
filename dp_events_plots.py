@@ -3,18 +3,19 @@ import numpy as np
 
 import importlib                                               
 import sys                                                      
-importlib.reload(sys.modules['utils.plot_functions']) 
+#importlib.reload(sys.modules['utils.plot_functions']) 
 from utils.plot_functions import *
 from utils.load_pulsars import load_pulsars_fnc
 from utils.my_units import *
 
-
-
 #%%
 freq_GW_ind = [0, 3, 10, 23]
-file_name_end = '_eps80'
+file_name_end = '_eps80_full'
+file_name_end_testEM = '_eps80_testPEM_fdot'
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
+#BHpop_list = ['5_30_0_1_']
 dfdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
+#dfdlogh_testEM, cum_dist_testEM = load_results(freq_GW_ind, BHpop_list, file_name_end_testEM)
 
 ### Loading csv file with pulsars data as a panda dataframe
 pulsars = load_pulsars_fnc()
@@ -42,6 +43,52 @@ legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mat
                   labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='upper left', fontsize=14)
 lines = []
 for i_BH, BHp_name in enumerate(BHpop_list):
+    if len(BHp_name)>9:
+        max_spin = BHp_name[-4:-1]
+    else:
+        max_spin = BHp_name[-2:-1]
+    lines.append(mlines.Line2D([], [], color='black', linestyle=linestyles[i_BH], label=BHp_name[2:4]+', '+max_spin))  ### fix this
+legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$',
+                    handles=lines, loc='upper right', handletextpad=0.5, frameon=False, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
+ax.add_artist(legend)
+
+ax.set_xscale('log'); ax.set_yscale('log')
+ax.set_xlim(5E-28,6E-24); ax.set_ylim(10,2.E5)
+ax.grid()
+ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
+ax.set_title('Signal strain distribution', fontsize=font_s);
+ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
+
+fig.tight_layout()
+#fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
+
+
+#%%
+### Test for EM power condition
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=18
+colors = sns.color_palette("mako", len(freq_GW_ind)) 
+linestyles = ['solid','dashed','dashdot','dotted']
+NBH = 1.E8
+
+for i, i_fGW in enumerate(freq_GW_ind):
+    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    line,=ax.plot(dfdlogh[i][0][:, 0], NBH*dfdlogh[i][0][:, 1], color = colors[i], linewidth=1, 
+                ls=linestyles[0], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    line,=ax.plot(dfdlogh_testEM[i][0][:, 0], NBH*dfdlogh_testEM[i][0][:, 1], color = 'black', linewidth=2, 
+                  ls=linestyles[1], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+    for i_BH in range(1, len(BHpop_list)):
+        1
+        #line,=ax.plot(dfdlogh[i][i_BH][:, 0], NBH*dfdlogh[i][i_BH][:, 1], color = colors[i], linewidth=1, 
+        #              ls=linestyles[i_BH])
+        #line,=ax.plot(dfdlogh_testEM[i][i_BH][:, 0], NBH*dfdlogh_testEM[i][i_BH][:, 1], color = colors[i], linewidth=2, 
+        #              ls=linestyles[i_BH])
+
+legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
+                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
+lines = []
+for i_BH, BHp_name in enumerate(BHpop_list[:-1]):
     lines.append(mlines.Line2D([], [], color='black', linestyle=linestyles[i_BH], label=BHp_name[2:4]+', '+BHp_name[-2:-1]))
 legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$',
                     handles=lines, loc='upper right', handletextpad=0.5, frameon=False, 
@@ -49,15 +96,14 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$'
 ax.add_artist(legend)
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlim(5E-28,1E-24); ax.set_ylim(10,2.E5)
+ax.set_xlim(5E-27,1E-24); ax.set_ylim(1,8.E4)
 ax.grid()
 ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
-
+#fig.savefig('figs/test_PEM_1.pdf', bbox_inches="tight")
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
@@ -73,21 +119,21 @@ for i, i_fGW in enumerate(freq_GW_ind):
                       ls=linestyles[i_BH])
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlim(5E-28,5E-25); ax.set_ylim(10,2.E5)
+ax.set_xlim(5E-28,1E-24); ax.set_ylim(10,2.E5)
 ax.grid()
 ax.set_xlabel(r'$h_{0}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0})$', fontsize=font_s); 
 ax.set_title('Number of expected events', fontsize=font_s);
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-fig.savefig('figs/nevents_eps80.pdf', bbox_inches="tight")
+#fig.savefig('figs/nevents_eps80.pdf', bbox_inches="tight")
 
 
 
 
 
 #%%
-### Error bar plot for the number of events decreasing epsilon
+### Error bar plot for the number of events decreasing epsilon  for narrowband
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=18
 NBH = 1.E8
@@ -97,12 +143,12 @@ print(len(pulsars))
 freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 
-log10eps_list = [8., 8.5, 9.]
-eps_labels = ['$10^{-8}$', '$10^{-8.5}$', '$10^{-9}$']
+log10eps_list = [9., 8.5, 8.]#[8., 8.5, 9.]
+eps_labels = ['$10^{-9}$', '$10^{-8.5}$', '$10^{-8}$']
 #freq_GW_ind = np.arange(42)
 freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
-colors = sns.color_palette("crest", len(log10eps_list)) 
+colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("crest", len(log10eps_list)) 
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
@@ -131,7 +177,7 @@ for i_eps, log10eps in enumerate(log10eps_list):
 lines = []
 for i_eps, log10eps in enumerate(log10eps_list):
     lines.append(mlines.Line2D([], [], color=colors[i_eps], label=eps_labels[i_eps]))
-legend2 = ax.legend(title='$\epsilon$', handles=lines, loc='upper right', handletextpad=0.5, frameon=True, 
+legend2 = ax.legend(title='$\epsilon$', handles=lines[::-1], loc='upper right', handletextpad=0.5, frameon=True, 
                     labelspacing=0.2, handlelength=1, fontsize=14)
 
 def forward(x):
@@ -148,11 +194,11 @@ ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_yl
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-fig.savefig('figs/nevents_analysis_loweps.pdf', bbox_inches="tight")
+#fig.savefig('figs/nevents_analysis_loweps.pdf', bbox_inches="tight")
 
 
 #%%
-### Error bar plot for the number of events increasing epsilon
+### Error bar plot for the number of events increasing epsilon for narrowband
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=18
 NBH = 1.E8
@@ -162,12 +208,12 @@ print(len(pulsars))
 freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 
-log10eps_list = [6.5, 7., 7.5, 8.]
-eps_labels = ['$10^{-6.5}$','$10^{-7}$', '$10^{-7.5}$', '$10^{-8}$' ]
+log10eps_list = [8., 7.5, 7., 6.5]#[6.5, 7., 7.5, 8.]
+eps_labels = ['$10^{-8}$', '$10^{-7.5}$', '$10^{-7}$',  '$10^{-6.5}$']
 #freq_GW_ind = np.arange(42)
 freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
-colors = sns.color_palette("flare", len(log10eps_list)) 
+colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("flare", len(log10eps_list)) 
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
@@ -191,11 +237,11 @@ for i_eps, log10eps in enumerate(log10eps_list):
     yerr = [y - np.min(nEV_list[:, 1:], axis=1), np.max(nEV_list[:, 1:], axis=1) - y]  # Asymmetric error bars
     # Create error bar plot
     ax.errorbar(nEV_list[:, 0], y, yerr=yerr, fmt='None', elinewidth=1.5,
-                capsize=1.5, capthick=1.5, ecolor=colors[i_eps], label=eps_labels[i_eps])
+                capsize=1.5, capthick=1.5, ecolor=colors[i_eps+2], label=eps_labels[i_eps])
 
 lines = []
 for i_eps, log10eps in enumerate(log10eps_list):
-    lines.append(mlines.Line2D([], [], color=colors[i_eps], label=eps_labels[i_eps]))
+    lines.append(mlines.Line2D([], [], color=colors[i_eps+2], label=eps_labels[i_eps]))
 legend2 = ax.legend(title='$\epsilon$', handles=lines, loc='upper right', handletextpad=0.5, frameon=True, 
                     labelspacing=0.2, handlelength=1, fontsize=14)
 
@@ -214,6 +260,136 @@ ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
 fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
+
+
+#%%
+### Error bar plot for the number of events decreasing epsilon other pipelines
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=18
+NBH = 1.E8
+### Loading csv file with pulsars data as a panda dataframe
+pulsars = load_pulsars_fnc()
+print(len(pulsars))
+freq_GW = pulsars.F_GW
+hUL = pulsars.upper_limits
+
+log10eps_list = [9., 8.5, 8.]#[8., 8.5, 9.]
+eps_labels = ['$10^{-9}$', '$10^{-8.5}$', '$10^{-8}$']
+#freq_GW_ind = np.arange(42)
+freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()!='narrowband') #np.arange(42)
+BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
+colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("crest", len(log10eps_list)) 
+
+for i_eps, log10eps in enumerate(log10eps_list):
+    #eps = np.power(10, -log10eps)
+    file_name_end = '_eps'+str(round(10*log10eps))
+    fdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
+    nEV_list = np.zeros((len(freq_GW_ind), 1+len(BHpop_list)))
+
+    for i, i_fGW in enumerate(freq_GW_ind):
+        nEV_list[i, 0] = freq_GW.iloc[i_fGW]
+        loghUL = [np.log10(hUL.iloc[i_fGW])] #[-27, -26.3, -26, -25] #
+        for i_BH in range(len(BHpop_list)):
+            sel_non_zero = cum_dist[i][i_BH][:, 1]>0
+            #print(log10eps, i_fGW, len(cum_dist[i][i_BH][sel_non_zero, 0]))
+            if len(cum_dist[i][i_BH][sel_non_zero, 0])>0:
+                log_dist = np.array([np.log10(cum_dist[i][i_BH][sel_non_zero, 0]), np.log10(NBH*cum_dist[i][i_BH][sel_non_zero, 1])]).T
+                [nEV_list[i, 1+i_BH]] = np.power(10, np.interp(loghUL, log_dist[:, 0], log_dist[:, 1], left=None, right=None, period=None))
+            else:
+                print(log10eps, i_fGW, freq_GW.iloc[i_fGW], BHpop_list[i_BH], ' has zero')
+    
+    y = (np.min(nEV_list[:, 1:], axis=1) + np.max(nEV_list[:, 1:], axis=1)) / 2  # Central value
+    yerr = [y - np.min(nEV_list[:, 1:], axis=1), np.max(nEV_list[:, 1:], axis=1) - y]  # Asymmetric error bars
+    # Create error bar plot
+    ax.errorbar(nEV_list[:, 0], y, yerr=yerr, fmt='None', elinewidth=1.5,
+                capsize=1.5, capthick=1.5, ecolor=colors[i_eps], label=eps_labels[i_eps])
+
+lines = []
+for i_eps, log10eps in enumerate(log10eps_list):
+    lines.append(mlines.Line2D([], [], color=colors[i_eps], label=eps_labels[i_eps]))
+legend2 = ax.legend(title='$\epsilon$', handles=lines[::-1], loc='upper right', handletextpad=0.5, frameon=True, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
+
+def forward(x):
+    return np.pi*Hz/(1.E-13*eV)*x 
+def inverse(x):
+    return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
+ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+
+ax.grid()
+#ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
+ax.set_yscale('log'); ax.set_ylim(1, 5E4)
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
+
+fig.tight_layout()
+fig.savefig('figs/nevents_analysis_loweps_app.pdf', bbox_inches="tight")
+
+
+#%%
+### Error bar plot for the number of events increasing epsilon other pipelines
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+font_s=18
+NBH = 1.E8
+### Loading csv file with pulsars data as a panda dataframe
+pulsars = load_pulsars_fnc()
+print(len(pulsars))
+freq_GW = pulsars.F_GW
+hUL = pulsars.upper_limits
+
+log10eps_list = [8., 7.5, 7., 6.5]#[6.5, 7., 7.5, 8.]
+eps_labels = ['$10^{-8}$', '$10^{-7.5}$', '$10^{-7}$',  '$10^{-6.5}$']
+#freq_GW_ind = np.arange(42)
+freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()!='narrowband') #np.arange(42)
+BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
+colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("flare", len(log10eps_list)) 
+
+for i_eps, log10eps in enumerate(log10eps_list):
+    #eps = np.power(10, -log10eps)
+    file_name_end = '_eps'+str(round(10*log10eps))
+    fdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
+    nEV_list = np.zeros((len(freq_GW_ind), 1+len(BHpop_list)))
+
+    for i, i_fGW in enumerate(freq_GW_ind):
+        nEV_list[i, 0] = freq_GW.iloc[i_fGW]
+        loghUL = [np.log10(hUL.iloc[i_fGW])] #[-27, -26.3, -26, -25] #
+        for i_BH in range(len(BHpop_list)):
+            sel_non_zero = cum_dist[i][i_BH][:, 1]>0
+            #print(log10eps, i_fGW, len(cum_dist[i][i_BH][sel_non_zero, 0]))
+            if len(cum_dist[i][i_BH][sel_non_zero, 0])>0:
+                log_dist = np.array([np.log10(cum_dist[i][i_BH][sel_non_zero, 0]), np.log10(NBH*cum_dist[i][i_BH][sel_non_zero, 1])]).T
+                [nEV_list[i, 1+i_BH]] = np.power(10, np.interp(loghUL, log_dist[:, 0], log_dist[:, 1], left=None, right=None, period=None))
+            else:
+                print(log10eps, i_fGW, freq_GW.iloc[i_fGW], BHpop_list[i_BH], ' has zero')
+    
+    y = (np.min(nEV_list[:, 1:], axis=1) + np.max(nEV_list[:, 1:], axis=1)) / 2  # Central value
+    yerr = [y - np.min(nEV_list[:, 1:], axis=1), np.max(nEV_list[:, 1:], axis=1) - y]  # Asymmetric error bars
+    # Create error bar plot
+    ax.errorbar(nEV_list[:, 0], y, yerr=yerr, fmt='None', elinewidth=1.5,
+                capsize=1.5, capthick=1.5, ecolor=colors[i_eps+2], label=eps_labels[i_eps])
+
+lines = []
+for i_eps, log10eps in enumerate(log10eps_list):
+    lines.append(mlines.Line2D([], [], color=colors[i_eps+2], label=eps_labels[i_eps]))
+legend2 = ax.legend(title='$\epsilon$', handles=lines, loc='upper right', handletextpad=0.5, frameon=True, 
+                    labelspacing=0.2, handlelength=1, fontsize=14)
+
+def forward(x):
+    return np.pi*Hz/(1.E-13*eV)*x 
+def inverse(x):
+    return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
+ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+
+ax.grid()
+#ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
+ax.set_yscale('log'); ax.set_ylim(1, 5E4)
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
+
+fig.tight_layout()
+fig.savefig('figs/nevents_analysis_higheps_app.pdf', bbox_inches="tight")
 
 
 #%%
