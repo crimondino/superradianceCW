@@ -102,7 +102,7 @@ xlim = 10
 #colors = sns.color_palette("bright", len(pipelines)) 
 markers = ['^', 'd', 's', 'P', 'o']
 colors = ['green', 'magenta', 'orange', 'steelblue', 'khaki']
-p_names = ['Narrowband', 'Targeted', '5vec-semicoh', 'All-sky', 'Binary']
+p_names = ['Narrow-band', 'Targeted', 'Semi-coherent', 'All-sky', 'Binary']
 
 count=0
 for i_p, p_name in enumerate(pipelines): 
@@ -110,13 +110,14 @@ for i_p, p_name in enumerate(pipelines):
     y_temp = y[pulsars['suggested_pipeline'] == p_name]
     z_temp = z[pulsars['suggested_pipeline'] == p_name]
     dist_temp = pulsars[pulsars['suggested_pipeline'] == p_name]['DIST'].to_numpy()
-    ax.scatter(x_temp, y_temp, z_temp, s=100/(dist_temp)**(1/4), color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
+    #ax.scatter(x_temp, y_temp, z_temp, s=300/(dist_temp)**(0.8), color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
+    ax.scatter(x_temp, y_temp, z_temp, s=300, color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
     for xi, yi, zi in zip(x_temp, y_temp, z_temp):
         count+=1
         ax.plot([xi, xi], [yi, yi], [zi, 0], color=colors[i_p], linestyle='--', linewidth=1)
 print('Number of sources plotted: {}'.format(count))
 
-ax.scatter(0, 0, 0, color='k', s=200,  marker='x', label='GC')
+ax.scatter(0, 0, 0, color='k', s=200,  marker='x', label='Galactic Center')
 ax.scatter(0, -8.122, 0, color='k', s=300,  marker='$\odot$', label='Sun')
 
 #plot_sphere(ax, [0, 0, 0], 3)
@@ -171,7 +172,7 @@ y_circle = 2.15 * np.sin(theta)
 z_circle = np.zeros_like(theta)  # Z-coordinate of the circle points
 ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
-ax.legend(fontsize=20, loc='best', bbox_to_anchor=(-0.5, 0.2, 0.5, 0.5))#loc=[-0.5, 0.3])
+ax.legend(fontsize=40, loc='best', bbox_to_anchor=(-0.43, 0.21, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
 fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
 

@@ -69,6 +69,7 @@ BW = 1.4*GHz
 FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
 
 F_peak_rescaled = (eps**2. * fr)*F_peak/FTh
+
 if np.isnan(fdot_range[i_fGW]):
     fGW_dot_rescaled = fGW_dot/1.
 else:

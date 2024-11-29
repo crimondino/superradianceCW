@@ -54,7 +54,7 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$'
 ax.add_artist(legend)
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlim(5E-28,6E-24); ax.set_ylim(10,2.E5)
+ax.set_xlim(5E-28,6E-24); ax.set_ylim(10,2.E4)
 ax.grid()
 ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
@@ -63,47 +63,6 @@ ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 fig.tight_layout()
 #fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
 
-
-#%%
-### Test for EM power condition
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-font_s=18
-colors = sns.color_palette("mako", len(freq_GW_ind)) 
-linestyles = ['solid','dashed','dashdot','dotted']
-NBH = 1.E8
-
-for i, i_fGW in enumerate(freq_GW_ind):
-    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
-    line,=ax.plot(dfdlogh[i][0][:, 0], NBH*dfdlogh[i][0][:, 1], color = colors[i], linewidth=1, 
-                ls=linestyles[0], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-    line,=ax.plot(dfdlogh_testEM[i][0][:, 0], NBH*dfdlogh_testEM[i][0][:, 1], color = 'black', linewidth=2, 
-                  ls=linestyles[1], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
-    for i_BH in range(1, len(BHpop_list)):
-        1
-        #line,=ax.plot(dfdlogh[i][i_BH][:, 0], NBH*dfdlogh[i][i_BH][:, 1], color = colors[i], linewidth=1, 
-        #              ls=linestyles[i_BH])
-        #line,=ax.plot(dfdlogh_testEM[i][i_BH][:, 0], NBH*dfdlogh_testEM[i][i_BH][:, 1], color = colors[i], linewidth=2, 
-        #              ls=linestyles[i_BH])
-
-legend = ax.legend(title='$f_{\mathrm{GW}}\ [{\mathrm{Hz}}], m\ [10^{-13}\ {\mathrm{eV}}]$', handletextpad=0.5, frameon=False, 
-                  labelspacing=0.2, ncol=2, columnspacing=1,handlelength=1, loc='lower left', fontsize=14)
-lines = []
-for i_BH, BHp_name in enumerate(BHpop_list[:-1]):
-    lines.append(mlines.Line2D([], [], color='black', linestyle=linestyles[i_BH], label=BHp_name[2:4]+', '+BHp_name[-2:-1]))
-legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$',
-                    handles=lines, loc='upper right', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
-ax.add_artist(legend)
-
-ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlim(5E-27,1E-24); ax.set_ylim(1,8.E4)
-ax.grid()
-ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
-ax.set_title('Signal strain distribution', fontsize=font_s);
-ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
-
-fig.tight_layout()
-#fig.savefig('figs/test_PEM_1.pdf', bbox_inches="tight")
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
@@ -119,7 +78,7 @@ for i, i_fGW in enumerate(freq_GW_ind):
                       ls=linestyles[i_BH])
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlim(5E-28,1E-24); ax.set_ylim(10,2.E5)
+ax.set_xlim(6E-28,1E-24); ax.set_ylim(2,3.E4)
 ax.grid()
 ax.set_xlabel(r'$h_{0}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0})$', fontsize=font_s); 
 ax.set_title('Number of expected events', fontsize=font_s);
@@ -259,7 +218,7 @@ ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_yl
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
+#fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
 
 
 #%%
