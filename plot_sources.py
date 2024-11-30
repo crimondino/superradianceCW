@@ -1,6 +1,7 @@
 #%%
 import numpy as np
 import healpy as hp
+
 from astropy.coordinates import SkyCoord, Galactocentric
 import astropy.units as u
 
@@ -172,7 +173,7 @@ y_circle = 2.15 * np.sin(theta)
 z_circle = np.zeros_like(theta)  # Z-coordinate of the circle points
 ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
-ax.legend(fontsize=40, loc='best', bbox_to_anchor=(-0.43, 0.21, 0.5, 0.5))#loc=[-0.5, 0.3])
+ax.legend(fontsize=40, loc='best', bbox_to_anchor=(-0.5, 0.21, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
 fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
 

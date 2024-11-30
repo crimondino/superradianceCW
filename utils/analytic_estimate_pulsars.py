@@ -10,30 +10,32 @@ sys.path.append(MAIN_DIR)
 
 from my_units import *
 #from superra#d import ultralight_boson as ub
-#%%
+
 
 #%%
 #Mmin, Mmax = 5, 30
 #Norm = 1/1.35*(Mmax**(1.35)-Mmin**(1.35))/( (Mmax*Mmin)**(1.35))
 def dndM(m):
     # Black hole mass distribution from 2003.03359
-#    return 1/Norm*1/m**(2.35)
+    # return 1/Norm*1/m**(2.35)
     return 1/m**(2.35)
-#%%
 
+def EM_lum(eps, alpha, Mc, MBH):
+    '''Total EM power emitted by the SR cloud'''
+    return eps**2*(0.131*alpha-0.188*alpha**2)*Mc/(GN*MBH)
 #%%
-def get_F_peak(bc, freq_GW, MList, aList, dcrit):
+def get_F_peak(bc, alpha_grid, MList, aList, dcrit):
     '''Function to compute the radio flux density as a function of mass, spin at the peak of the SR cloud growth'''
 
     tSR = np.zeros((len(MList), len(aList)))
     tGW = np.zeros((len(MList), len(aList)))
     Fpeak = np.zeros((len(MList), len(aList)))
-    fGWdot = np.zeros((len(MList), len(aList)))
-
-    mu = np.pi*freq_GW*Hz
-    
+    Mcpeak = np.zeros((len(MList), len(aList)))
+    #PowerRatiopeak = np.zeros((len(MList), len(aList)))
+    tEMtGWRatio = np.zeros((len(MList), len(aList)))
+     
     for i_m, mbh in enumerate(MList):
-        alpha = GN*mu*mbh*MSolar
+        alpha = alpha_grid[i_m, 0]
 
         for i_a, abh0 in enumerate(aList):
             try:
@@ -42,79 +44,99 @@ def get_F_peak(bc, freq_GW, MList, aList, dcrit):
                     tSR[i_m, i_a] = wf.cloud_growth_time()*Second
                     tGW[i_m, i_a] = wf.gw_time()*Second
                     Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*dcrit**2)/(erg/Second/CentiMeter**2)
-                    fGWdot[i_m, i_a] = wf.freqdot_gw(0)*(Hz/Second)
+                    Mcpeak[i_m, i_a] = wf.mass_cloud(0)
+                    #PowerRatiopeak[i_m, i_a] =  wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
+                    tEMtGWRatio[i_m, i_a] = wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
                 else:
                     tSR[i_m, i_a] = np.nan
                     tGW[i_m, i_a] = np.nan
                     Fpeak[i_m, i_a] = np.nan
-                    fGWdot[i_m, i_a] = np.nan
+                    Mcpeak[i_m, i_a] = np.nan
+                    tEMtGWRatio[i_m, i_a] =  np.nan
             except ValueError:
                 #print("ValueError", mbh, abh0, alpha)
                 tSR[i_m, i_a] = np.nan
                 tGW[i_m, i_a] = np.nan
                 Fpeak[i_m, i_a] = np.nan
-                fGWdot[i_m, i_a] = np.nan
+                Mcpeak[i_m, i_a] = np.nan
+                tEMtGWRatio[i_m, i_a] =  np.nan
                 pass 
             
-    return tSR, tGW, Fpeak, fGWdot
-#%%
+    return tSR, tGW, Fpeak, Mcpeak, tEMtGWRatio
 
 #%%
-def get_fdot_tobs(fdot0, tobs_over_tGW):
-    return fdot0/(1. + tobs_over_tGW)**2
+def get_Mcfrac_tobs_Ratio(tauRatio, tobs_over_tGW):
+    return (np.exp(tobs_over_tGW/tauRatio)*(1. + tauRatio) - tauRatio )/(1. + tobs_over_tGW)
+
 #%%
+def get_F_tobs(Fpeak, tobs_over_tGW):
+    return Fpeak/(1. + tobs_over_tGW)
+
+#%%
+def Efield_fn(epsilon, alpha, mu, Nocc):
+    '''SR cloud electric field'''
+    return 1./np.sqrt(np.pi)*epsilon*alpha**(3/2)*mu**2*np.sqrt(Nocc)
+
+def Gamma_pair_fn(epsilon, mu, alpha, Nocc):
+    '''Pair production rate from photon-assisted Schwinger'''
+    E_field = Efield_fn(epsilon, alpha, mu, Nocc)
+    exp_factor = 4*MElectron**6*mu**2/((ElectronCharge*E_field)**4)
+    
+    return AlphaEM/(2*np.pi)*ElectronCharge*E_field/MElectron*np.exp(-exp_factor)
+
 
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
 
 #%%
-def get_vol_int_disc(rd, robs, tSR, tGW, Fpeak, FVal, fdot0, fdotMax, tIn, n_phi = 101, n_rho = 99):
+def get_vol_int_disc(rd, robs, tSR, tGW, Fpeak_fr_eps_FVal, tIn, tauRatio_eps, n_phi = 101, n_rho = 99):
 
-    int_over_vol = np.zeros( Fpeak.shape )
+    int_over_vol = np.zeros( Fpeak_fr_eps_FVal.shape )
     phi_list = np.linspace(0, 2*np.pi, n_phi)
     robs_tilde = robs/rd
     robs_tilde_sq = robs_tilde**2
 
-    #rho_ll = 1#0.1 * (dmin / rd - robs_tilde)
-    #rho_ll[dmin / rd <= robs_tilde] = 1E-4
-    #rho_ul = 10.*(dmax/rd + robs_tilde)
-    rho_list = np.concatenate( [ [0], np.geomspace( 1.E-3, 1.E3, n_rho) ])
+    rho_list = np.concatenate( [ [0], np.geomspace( 1.E-3, 1.E3, n_rho) ]) # check that this range is enough
     rho_grid = rho_list[np.newaxis, :]
 
     cos_phi_grid = np.cos(phi_list)[:, np.newaxis]
 
-    for i_m in range(Fpeak.shape[0]):
-        for i_s in range(Fpeak.shape[1]):
+    for i_m in range(Fpeak_fr_eps_FVal.shape[0]):
+        for i_s in range(Fpeak_fr_eps_FVal.shape[1]):
 
             dist_grid_sq = (rho_grid)**2 + robs_tilde_sq - 2*robs_tilde*rho_grid*cos_phi_grid
 
-            # require fdot to be small enough
-            #tobs_over_tGW = (Fpeak[i_m, i_s]/FVal / dist_grid_sq - 1.)
-            H = 1. #np.heaviside(fdotMax/get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+            tobs_over_tGW = (Fpeak_fr_eps_FVal[i_m, i_s] / (dist_grid_sq) - 1.)
 
-            integrand = H*rho_grid*np.exp(-rho_grid)/dist_grid_sq
-            cond1 = ( dist_grid_sq > (Fpeak[i_m, i_s]/FVal) )
-            cond2 = ( (dist_grid_sq**(3/2) + (tSR[i_m, i_s] - tGW[i_m, i_s] - tIn)/rd*dist_grid_sq + Fpeak[i_m, i_s]/FVal*tGW[i_m, i_s]/rd) > 0 )
-            integrand[cond1] = 0.
-            integrand[cond2] = 0.
+            Htobs1 = np.heaviside((tIn - tSR[i_m, i_s] - np.sqrt(dist_grid_sq)*rd)/tGW[i_m, i_s] - tobs_over_tGW, 1.) 
+            Htobs2 = np.heaviside(tobs_over_tGW, 1.) 
+            Hpower = np.heaviside(0.1 - np.abs(get_Mcfrac_tobs_Ratio(tauRatio_eps[i_m, i_s], tobs_over_tGW) - 1.), 1.)   
+
+            integrand = Htobs1*Htobs2*Hpower*rho_grid*np.exp(-rho_grid)/dist_grid_sq
             integrand[np.isnan(integrand)] = 0.
 
             int_over_rho = np.trapz(integrand, rho_list, axis=1)
             int_over_vol[i_m, i_s] = np.trapz(int_over_rho, phi_list, axis=0)
 
     return int_over_vol/(2.*np.pi)
-#%%
+
 
 #%%
-def get_dfdlogF_disc(tSR, tGW, Fpeak, MList, aList, FVal, fdot0, fdotMax, rd, robs, tIn, xdisc): 
+def get_dfdlogF_disc(mu, eps, Mpeak, alpha_grid, tauRatio, tSR, tGW, Fpeak_fr_eps_FVal, MList, aList, rd, robs, tIn, xdisc): 
     '''Returns the differential pdf of h as a function of log10(h)'''
 
-    int_over_vol = get_vol_int_disc(rd, robs, tSR, tGW, Fpeak, FVal, fdot0, fdotMax, tIn)
+    tauRatio_eps = tauRatio/eps**2.
+    int_over_vol = get_vol_int_disc(rd, robs, tSR, tGW, Fpeak_fr_eps_FVal, tIn, tauRatio_eps)
+
+    ### Compute the minimum value of epsilon allowed when the cloud reaches saturation
+    Nocc = Mpeak*MSolar/mu
+    gamma_pair_ratio = Gamma_pair_fn(eps, mu, alpha_grid, Nocc)/(alpha_grid*mu)
+    Hplasma = np.heaviside(gamma_pair_ratio - 1., 1.)  
 
     fMList = dndM(MList)
-    integrand = (int_over_vol) * Fpeak/FVal * tGW/tIn
+    integrand = (int_over_vol) * Fpeak_fr_eps_FVal * tGW/tIn * Hplasma
     integrand[np.isnan(integrand)] = 0.
 
     intOvera = np.trapz(integrand, x=aList, axis=1)
 
     return xdisc*np.trapz(fMList*intOvera, x=MList)
-#%%
+

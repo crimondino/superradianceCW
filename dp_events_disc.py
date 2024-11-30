@@ -2,9 +2,9 @@
 import numpy as np
 import sys
 
-#import importlib                                                 # *** COMMENT OUT ***
-#import sys                                                       # *** COMMENT OUT ***
-#importlib.reload(sys.modules['utils.analytic_estimate_events'])  # *** COMMENT OUT ***
+import importlib                                                 # *** COMMENT OUT ***
+import sys                                                       # *** COMMENT OUT ***
+importlib.reload(sys.modules['utils.analytic_estimate_events'])  # *** COMMENT OUT ***
 from utils.analytic_estimate_events import *
 from utils.load_pulsars import load_pulsars_fnc
 from superrad import ultralight_boson as ub
@@ -22,7 +22,7 @@ fdot_range = pulsars['fdot range or resolution [Hz/s]'].to_numpy()
 
 #%%
 #i_fGW = int(sys.argv[1]) 
-i_fGW = 11 # *** COMMENT OUT ***
+i_fGW = 0 # *** COMMENT OUT ***
 print('\nComputing pulsar number =', i_fGW, ', GW freq. = ', freq_GW[i_fGW], ' Hz', flush=True)
 #Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3]) 
 #aMin, aMax = float(sys.argv[4]), float(sys.argv[5])
@@ -32,10 +32,10 @@ print('\nMmin, Mmax =', Mmin, ' ', Mmax, 'aMin, aMax =', aMin, ' ', aMax, flush=
 
 #%%
 # Grid of values of M, a and t
-MList = np.geomspace(Mmin, Mmax, 205)
-aList = np.linspace(aMin, aMax, 198) 
-#MList = np.geomspace(Mmin, Mmax, 205) # *** COMMENT OUT ***
-#aList = np.linspace(aMin, aMax, 198)  # *** COMMENT OUT ***
+#MList = np.geomspace(Mmin, Mmax, 205)
+#aList = np.linspace(aMin, aMax, 198) 
+MList = np.geomspace(Mmin, Mmax, 98) # *** COMMENT OUT ***
+aList = np.linspace(aMin, aMax, 101)  # *** COMMENT OUT ***
 
 mu = np.pi*freq_GW[i_fGW]*Hz
 alpha_grid = (GN*mu*MList*MSolar)[:, None]
@@ -58,12 +58,12 @@ t_SR, t_GW, h_Tilde, fGW_dot, F_peak, M_peak, tEMtGW_Ratio = get_hTilde_peak(bc,
 #%%
 #hList = np.geomspace(5E-28, 1E-24, 121)
 #hList = np.geomspace(5.E-27, 6.E-24, 121)
-hList = np.geomspace(5E-24, 6E-23, 4) # *** COMMENT OUT ***
+hList = np.geomspace(5.E-26, 1.E-23, 20) # *** COMMENT OUT ***
 dfdlogh_disc = np.zeros((len(hList)+1, 2))
 dfdlogh_disc[0, :] = [0, freq_GW[i_fGW]]
 dfdlogh_disc[1:, 0] = hList
 
-log10eps = 8.5
+log10eps = 6.5
 eps, fr = np.power(10., -log10eps), 1.E-5
 BW = 1.4*GHz
 FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
@@ -92,3 +92,27 @@ for i_h, hVal in enumerate(hList):
 #%%
 # Save results
 #np.save('data/disc_events/dndlogh_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_eps'+str(round(10*log10eps))+'_testPEM.npy', dfdlogh_disc)
+
+
+#%%
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.rcdefaults()
+from matplotlib import font_manager
+from matplotlib import rcParams
+import matplotlib.lines as mlines
+from matplotlib.ticker import FuncFormatter, LogLocator
+from matplotlib.collections import LineCollection
+from matplotlib.colors import Normalize
+import matplotlib.cm as cm
+rcParams['mathtext.rm'] = 'Times New Roman' 
+rcParams['text.usetex'] = True
+rcParams['font.family'] = 'times' #'sans-serif'
+font_manager.findfont('serif', rebuild_if_missing=True)
+rcParams.update({'font.size':14})
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+
+ax.plot(dfdlogh_disc[1:, 0], dfdlogh_disc[1:, 1])
+
+ax.set_xscale('log'); ax.set_yscale('log')

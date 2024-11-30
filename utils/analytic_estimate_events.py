@@ -152,8 +152,8 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, ta
 
             tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
             # Upper bound on SR spin-up rate fdot
-            #Hfdot = np.heaviside(1./get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
-            Hfdot = np.heaviside(1./get_fdot_tobs_exact(fdot0[i_m, i_s], tauRatio_eps[i_m, i_s], tobs_over_tGW)-1., 1.)  # using the correct time evolution
+            Hfdot = np.heaviside(1./get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
+            #Hfdot = np.heaviside(1./get_fdot_tobs_exact(fdot0[i_m, i_s], tauRatio_eps[i_m, i_s], tobs_over_tGW)-1., 1.)  # using the correct time evolution
             # Lower bound on the SR radio flux luminosity
             Hflux = np.heaviside(get_F_tobs(Fpeak[i_m, i_s], tobs_over_tGW)*( dcrit/(dist_grid*rd) )**2-1., 1.) 
             # Upper bound on the EM power emitted such that Mc(t) power law time evolution is correct within 10%
