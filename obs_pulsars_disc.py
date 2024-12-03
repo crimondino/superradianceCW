@@ -3,8 +3,7 @@ import numpy as np
 import sys
 
 #import importlib    # *** COMMENT OUT ***
-#puo
-# importlib.reload(sys.modules['utils.analytic_estimate_pulsars'])    # *** COMMENT OUT ***
+#importlib.reload(sys.modules['utils.analytic_estimate_pulsars'])    # *** COMMENT OUT ***
 from utils.analytic_estimate_pulsars import *
 from utils.load_pulsars import load_pulsars_fnc
 from superrad import ultralight_boson as ub
@@ -20,7 +19,7 @@ freq_GW = pulsars['F_GW'].to_numpy()
 
 #%%
 i_fGW = int(sys.argv[1]) 
-#i_fGW = 21 # *** COMMENT OUT ***
+#i_fGW = 35 # *** COMMENT OUT ***
 print('\nComputing pulsar number =', i_fGW, ', GW freq. = ', freq_GW[i_fGW], ' Hz', flush=True)
 Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3]) 
 aMin, aMax = float(sys.argv[4]), float(sys.argv[5])
@@ -57,8 +56,8 @@ t_SR, t_GW, F_peak, M_peak, tEMtGW_Ratio = get_F_peak(bc, alpha_grid, MList, aLi
 #%%
 BW = 1.4*GHz
 FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
-FList = np.geomspace(1.E-1, 1.E4, 121)*FTh 
-#FList = np.geomspace(1.E-1, 1.E5, 23)*FTh  # *** COMMENT OUT ***
+FList = np.geomspace(1.E-1, 5.E6, 121)*FTh 
+#FList = np.geomspace(1., 1.E4, 42)*FTh  # *** COMMENT OUT ***
 dfdlogF_disc = np.zeros((len(FList)+1, 2))
 dfdlogF_disc[0, :] = [0, freq_GW[i_fGW]]
 dfdlogF_disc[1:, 0] = FList
@@ -67,6 +66,7 @@ log10eps = 8.0
 eps, fr = np.power(10., -log10eps), 1.E-5
 
 Fpeak_fr_eps = (eps**2. * fr)*F_peak
+Fpeak_temp = (eps**2. * fr)*F_peak/FTh
 
 for i_F, FVal in enumerate(FList):
     if (i_F%20 == 0):
@@ -74,6 +74,7 @@ for i_F, FVal in enumerate(FList):
     Fpeak_fr_eps_FVal = Fpeak_fr_eps/FVal
     dfdlogF_disc[i_F+1, 1] = norm_disc*get_dfdlogF_disc(mu, eps, M_peak, alpha_grid, tEMtGW_Ratio, t_SR, t_GW, Fpeak_fr_eps_FVal, 
                                                         MList, aList, r_d, rho_obs, tIn, x_disc)
+                                             
 
 # Save results
 np.save('data/pulsars_events/dndlogF_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'+str(sys.argv[4])+'_'+str(sys.argv[5])+'_'+str(i_fGW)+'_eps'+str(round(10*log10eps))+'.npy', dfdlogF_disc)
@@ -84,8 +85,28 @@ np.save('data/pulsars_events/dndlogF_'+str(sys.argv[2])+'_'+str(sys.argv[3])+'_'
 
 #fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 #conv_f = (erg/Second/CentiMeter**2)/(1.E-3*Jy*BW)
+#NBH = 1.E8
 
-#ax.plot(dfdlogF_disc[1:, 0]*conv_f, NBH*dfdlogF_disc[1:, 1])
+#ax.plot(dfdlogF_disc[1:, 0]/FTh, NBH*dfdlogF_disc[1:, 1])
 #ax.set_xscale('log'); ax.set_yscale('log')
+#ax.set_xlim(1.5E-5,1.E3); ax.set_ylim(1E-2,1.E4)
+#ax.grid()
+#ax.set_xlabel(r'$F_r\ [{\rm mJy}]$', fontsize=12); ax.set_ylabel(r'$dn_{F_r}/d\log F_r$', fontsize=12); 
+#ax.set_title('Radio flux distribution', fontsize=12);
+
+
+# %%
+#cum_dist = np.zeros( (len(dfdlogF_disc[1:, 0]-1), 2) )
+#for i_h in range(len(dfdlogF_disc[1:, 0]-1)):
+#    cum_dist[i_h, 0] = dfdlogF_disc[1+i_h, 0]
+#    cum_dist[i_h, 1] = np.trapz(dfdlogF_disc[1+i_h:, 1]/dfdlogF_disc[1+i_h:, 0], x=dfdlogF_disc[1+i_h:, 0])
+#print(cum_dist[:11, 1]/x_disc)
+
+##fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
+conv_f = (erg/Second/CentiMeter**2)/(1.E-3*Jy*BW)
+
+#ax.plot(conv_f*cum_dist[:, 0], cum_dist[:, 1]/x_disc)
+#ax.set_xscale('log'); ax.set_yscale('log')
+#ax.set_xlim(1.5E-1,1.E6); ax.set_ylim(1E-2,1.E4)
 
 # %%

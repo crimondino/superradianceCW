@@ -25,7 +25,7 @@ def EM_lum(eps, alpha, Mc, MBH):
     return eps**2*(0.131*alpha-0.188*alpha**2)*Mc/(GN*MBH)
 
 #%%
-def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
+def get_hTilde_peak(bc, alpha_grid, MList, aList, rd):
     '''Function to compute the strain hTilde as a function of mass, spin at the peak of the SR cloud growth'''
 
     tSR = np.zeros((len(MList), len(aList)))
@@ -46,11 +46,10 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
                 if wf.azimuthal_num()==1:
                     tSR[i_m, i_a] = wf.cloud_growth_time()*Second
                     tGW[i_m, i_a] = wf.gw_time()*Second
-                    hTilde[i_m, i_a] = wf.strain_char(0., dObs=(dcrit/Mpc) )
+                    hTilde[i_m, i_a] = wf.strain_char(0., dObs=(rd/Mpc) )
                     fGWdot[i_m, i_a] = wf.freqdot_gw(0)*(Hz/Second)
-                    Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*dcrit**2)/(erg/Second/CentiMeter**2)
+                    Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*rd**2)/(erg/Second/CentiMeter**2)
                     Mcpeak[i_m, i_a] = wf.mass_cloud(0)
-                    #PowerRatiopeak[i_m, i_a] =  wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
                     tEMtGWRatio[i_m, i_a] = wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)
                 else:
                     tSR[i_m, i_a] = np.nan
@@ -71,13 +70,13 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, dcrit):
                 tEMtGWRatio[i_m, i_a] =   np.nan
                 pass 
             
-    return tSR, tGW, hTilde, fGWdot, Fpeak, Mcpeak, tEMtGWRatio#PowerRatiopeak
+    return tSR, tGW, hTilde, fGWdot, Fpeak, Mcpeak, tEMtGWRatio
 
 
 #%%
-def get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
+def get_d_minusplus(tSR, tGW, hTilde, hVal, rd, tInEn):
 
-    dUL = hTilde/hVal*dcrit
+    dUL = hTilde/hVal*rd
 
     deltaT = tInEn - tSR + tGW
     xx = np.sqrt( deltaT**2. - 4.*dUL*tGW )
@@ -89,9 +88,9 @@ def get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tInEn):
 
 
 #%%
-def get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn):
+def get_d_limits(tSR, dminus, dplus, hTilde, hVal, rd, tIn):
 
-    dUL = hTilde/hVal*dcrit    
+    dUL = hTilde/hVal*rd    
     dmax_temp = np.array([dplus, dUL, tIn-tSR]).T  
     return dminus, np.min(dmax_temp, axis=2).T
 
@@ -104,7 +103,11 @@ def get_fdot_tobs_exact(fdot0, tauRatio, tobs_over_tGW):
     return fdot0*np.exp(tobs_over_tGW/tauRatio)/(tauRatio - (1.+tauRatio)*np.exp(tobs_over_tGW/tauRatio) )**2
 
 def get_Mcfrac_tobs_Ratio(tauRatio, tobs_over_tGW):
-    return (np.exp(tobs_over_tGW/tauRatio)*(1. + tauRatio) - tauRatio )/(1. + tobs_over_tGW)
+    # using the mask to avoid overflow error
+    mask = (tobs_over_tGW/tauRatio < 500.)
+    res = np.full_like(tobs_over_tGW, np.nan, dtype=np.float64)
+    res[mask] = (np.exp(tobs_over_tGW[mask]/tauRatio)*(1. + tauRatio) - tauRatio )/(1. + tobs_over_tGW[mask])
+    return res
 
 #%%
 def get_F_tobs(Fpeak, tobs_over_tGW):
@@ -126,9 +129,9 @@ def Gamma_pair_fn(epsilon, mu, alpha, Nocc):
 ########## FUNCTIONS FOR BHs IN THE DISC (THIN DISC APPROX) ##########
 
 #%%
-def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, tauRatio_eps, n_phi = 101, n_rho = 99):
+def get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, tauRatio_eps, n_phi = 101, n_rho = 99):
 
-    int_over_vol = np.zeros( dmin.shape )
+    int_over_vol = np.zeros( hTilde.shape )
     phi_list = np.linspace(0, 2*np.pi, n_phi)
     robs_tilde = robs/rd
     robs_tilde_sq = robs_tilde**2
@@ -137,56 +140,56 @@ def get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, ta
     rho_ll[dmin / rd <= robs_tilde] = 1E-4
     rho_ul = 10.*(dmax/rd + robs_tilde)
 
-    #phi_grid = phi_list[:, np.newaxis]
-    #cos_phi_grid = np.cos(phi_grid)
     cos_phi_grid = np.cos(phi_list)[:, np.newaxis]
 
-    for i_m in range(dmin.shape[0]):
-        for i_s in range(dmin.shape[1]):
+    non_nan_indices = np.where(~np.isnan(hTilde))
+    locations = list(zip(non_nan_indices[0], non_nan_indices[1]))
 
-            rho_list = np.concatenate( [ [0], np.geomspace( rho_ll[i_m, i_s], rho_ul[i_m, i_s], n_rho) ])
-            rho_grid = rho_list[np.newaxis, :]
+    for i_pair in locations:
+        rho_list = np.concatenate( [ [0], np.geomspace( rho_ll[i_pair], rho_ul[i_pair], n_rho) ])
+        rho_grid = rho_list[np.newaxis, :]
 
-            dist_grid = np.sqrt( (rho_grid)**2 + robs_tilde_sq - 2*robs_tilde*rho_grid*cos_phi_grid )
-            dist_grid[dist_grid==0] = np.nan
+        dist_grid = np.sqrt( (rho_grid)**2 + robs_tilde_sq - 2*robs_tilde*rho_grid*cos_phi_grid )
+        dist_grid[dist_grid==0] = np.nan
 
-            tobs_over_tGW = (hTilde[i_m, i_s]/hVal / dist_grid - 1.)
-            # Upper bound on SR spin-up rate fdot
-            Hfdot = np.heaviside(1./get_fdot_tobs(fdot0[i_m, i_s], tobs_over_tGW)-1., 1.) 
-            #Hfdot = np.heaviside(1./get_fdot_tobs_exact(fdot0[i_m, i_s], tauRatio_eps[i_m, i_s], tobs_over_tGW)-1., 1.)  # using the correct time evolution
-            # Lower bound on the SR radio flux luminosity
-            Hflux = np.heaviside(get_F_tobs(Fpeak[i_m, i_s], tobs_over_tGW)*( dcrit/(dist_grid*rd) )**2-1., 1.) 
-            # Upper bound on the EM power emitted such that Mc(t) power law time evolution is correct within 10%
-            #Hpower = np.heaviside(get_F_tobs(Pratiopeak_eps[i_m, i_s], tobs_over_tGW)-1., 1.)
-            Hpower = np.heaviside(0.1 - np.abs(get_Mcfrac_tobs_Ratio(tauRatio_eps[i_m, i_s], tobs_over_tGW) - 1.), 1.)            
+        tobs_over_tGW = (hTilde[i_pair]/hVal / dist_grid - 1.)
+        # Upper bound on SR spin-up rate fdot
+        Hfdot = np.heaviside(1./get_fdot_tobs(fdot0[i_pair], tobs_over_tGW)-1., 1.)  
+        #Hfdot = np.heaviside(1./get_fdot_tobs_exact(fdot0[i_pair], tauRatio_eps[i_pair], tobs_over_tGW)-1., 1.)  # using the correct time evolution
+        # Lower bound on the SR radio flux luminosity
+        Hflux = np.heaviside(get_F_tobs(Fpeak[i_pair], tobs_over_tGW)/(dist_grid**2)-1., 1.) 
+        # Upper bound on the EM power emitted such that Mc(t) power law time evolution is correct within 10%
+        Hpower = np.heaviside(0.1 - np.abs(get_Mcfrac_tobs_Ratio(tauRatio_eps[i_pair], tobs_over_tGW) - 1.), 1.)            
 
-            integrand = Hfdot*Hflux*Hpower*rho_grid*np.exp(-rho_grid)/dist_grid
-            integrand[dist_grid < (dmin[i_m, i_s]/rd)] = 0.
-            integrand[dist_grid > (dmax[i_m, i_s]/rd)] = 0.
-            integrand[np.isnan(integrand)] = 0.
+        integrand = Hfdot*Hflux*Hpower*rho_grid*np.exp(-rho_grid)/dist_grid
+        integrand[dist_grid < (dmin[i_pair]/rd)] = 0.
+        integrand[dist_grid > (dmax[i_pair]/rd)] = 0.
+        integrand[np.isnan(integrand)] = 0.
 
-            int_over_rho = np.trapz(integrand, rho_list, axis=1)
-            int_over_vol[i_m, i_s] = np.trapz(int_over_rho, phi_list, axis=0)
+        int_over_rho = np.trapz(integrand, rho_list, axis=1)
+        int_over_vol[i_pair] = np.trapz(int_over_rho, phi_list, axis=0)
 
     return int_over_vol/(2.*np.pi)
 
-#%%
-#def get_dfdlogh_disc(mu, eps, Mpeak, alpha_grid, Pratiopeak, tSR, tGW, hTilde, MList, aList, hVal, fdot0, Fpeak, dcrit, rd, robs, tIn, xdisc): 
-def get_dfdlogh_disc(mu, eps, Mpeak, alpha_grid, tauRatio, tSR, tGW, hTilde, MList, aList, hVal, fdot0, Fpeak, dcrit, rd, robs, tIn, xdisc): 
-    '''Returns the differential pdf of h as a function of log10(h)'''
 
-    dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, dcrit, tIn)
-    dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, dcrit, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, dcrit, tIn)
-    tauRatio_eps = tauRatio/eps**2.
-    int_over_vol = get_vol_int_disc(dcrit, rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, tauRatio_eps)
-
+def get_Hplasma(mu, eps, Mpeak, alpha_grid):
     ### Compute the minimum value of epsilon allowed when the cloud reaches saturation
     Nocc = Mpeak*MSolar/mu
     gamma_pair_ratio = Gamma_pair_fn(eps, mu, alpha_grid, Nocc)/(alpha_grid*mu)
-    Hplasma = np.heaviside(gamma_pair_ratio - 1., 1.)  
+    return np.heaviside(gamma_pair_ratio - 1., 1.)  
+
+
+#%%
+def get_dfdlogh_disc(eps, tauRatio, tSR, tGW, hTilde, MList, aList, hVal, fdot0, Fpeak, rd, robs, tIn, xdisc): 
+    '''Returns the differential pdf of h as a function of log10(h)'''
+
+    dminus, dplus = get_d_minusplus(tSR, tGW, hTilde, hVal, rd, tIn)
+    dmin, dmax = get_d_limits(tSR, dminus, dplus, hTilde, hVal, rd, tIn) #get_d_limits(tSR, tGW, hTilde, hVal, rd, tIn)
+    tauRatio_eps = tauRatio/eps**2.
+    int_over_vol = get_vol_int_disc(rd, robs, dmin, dmax, hTilde, hVal, fdot0, Fpeak, tauRatio_eps)
 
     fMList = dndM(MList)
-    integrand = dcrit/rd * (int_over_vol) * hTilde/hVal * tGW/tIn * Hplasma
+    integrand = (int_over_vol) * hTilde/hVal * tGW/tIn #* Hplasma
     integrand[np.isnan(integrand)] = 0
 
     intOvera = np.trapz(integrand, x=aList, axis=1)

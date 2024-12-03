@@ -9,9 +9,9 @@ from utils.load_pulsars import load_pulsars_fnc
 from utils.my_units import *
 
 #%%
-freq_GW_ind = [0, 3, 10, 23, 43] #[0, 3, 10, 23]
-file_name_end = '_eps65_testlarge' #'_eps80_full'
-file_name_end_testEM = '_eps80_testPEM_fdot'
+freq_GW_ind = [0, 3, 10, 23] #[0, 3, 10, 23]
+file_name_end = '_eps80' #'_eps65_testlarge'
+#file_name_end_testEM = '_eps80_testPEM_fdot'
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 #BHpop_list = ['5_30_0_1_']
 dfdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
@@ -54,15 +54,15 @@ legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$'
 ax.add_artist(legend)
 
 ax.set_xscale('log'); ax.set_yscale('log')
-ax.set_xlim(5E-27,1.E-22); ax.set_ylim(-2,10)
-#ax.set_xlim(5E-28,6E-24); ax.set_ylim(10,2.E4)
+#ax.set_xlim(5E-27,1.E-22); ax.set_ylim(-2,10)
+ax.set_xlim(5E-28,6E-24); ax.set_ylim(5,8.E3)
 ax.grid()
 ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
 #ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-#fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
+fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
 
 
 #%%
@@ -79,14 +79,14 @@ for i, i_fGW in enumerate(freq_GW_ind):
                       ls=linestyles[i_BH])
 
 ax.set_xscale('log'); ax.set_yscale('log')
-#ax.set_xlim(6E-28,1E-24); ax.set_ylim(2,3.E4)
+ax.set_xlim(6E-28,1E-24); ax.set_ylim(2,1.E4)
 ax.grid()
 ax.set_xlabel(r'$h_{0}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0})$', fontsize=font_s); 
 ax.set_title('Number of expected events', fontsize=font_s);
 #ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-#fig.savefig('figs/nevents_eps80.pdf', bbox_inches="tight")
+fig.savefig('figs/nevents_eps80.pdf', bbox_inches="tight")
 
 
 
@@ -149,7 +149,7 @@ ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 5E4)
+ax.set_yscale('log'); ax.set_ylim(1, 2E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
@@ -168,20 +168,16 @@ print(len(pulsars))
 freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 
-log10eps_list = [8., 7.5, 7., 6.5]#[6.5, 7., 7.5, 8.]
+log10eps_list = [8., 8.]#[8., 7.5, 7., 6.5]#[6.5, 7., 7.5, 8.]
 eps_labels = ['$10^{-8}$', '$10^{-7.5}$', '$10^{-7}$',  '$10^{-6.5}$']
-#freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
-freq_GW_ind = [0, 3, 10, 23, 43]
+freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
+#freq_GW_ind = [0, 3, 10, 23, 43]
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("flare", len(log10eps_list)) 
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
-    if str(round(10*log10eps))=='65':
-        file_name_end = '_eps65_testlarge'
-    else:
-        file_name_end = '_eps'+str(round(10*log10eps))
-    #file_name_end = '_eps'+str(round(10*log10eps))
+    file_name_end = '_eps'+str(round(10*log10eps))
     print(file_name_end)
     fdlogh, cum_dist = load_results(freq_GW_ind, BHpop_list, file_name_end)
     nEV_list = np.zeros((len(freq_GW_ind), 1+len(BHpop_list)))
@@ -219,12 +215,12 @@ ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 5E4)
+ax.set_yscale('log'); ax.set_ylim(1, 2E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-#fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
+fig.savefig('figs/nevents_analysis_higheps.pdf', bbox_inches="tight")
 
 
 #%%

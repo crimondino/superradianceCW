@@ -22,6 +22,7 @@ BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("crest", len(log10eps_list)) 
 nEV_list = np.zeros((len(log10eps_list), len(freq_GW_ind), 1+len(BHpop_list)))
 
+
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
     file_name_end = '_eps'+str(round(10*log10eps))

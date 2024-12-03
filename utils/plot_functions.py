@@ -66,4 +66,5 @@ def load_results_pulsars(freqGWi_list, BHp_list, file_name_end):
 
 def log_format_func(value, tick_number):
     exponent = int(np.log10(value))
-    return f"{int(value):d}" if ( (exponent <= 1) ) else f"$10^{{{exponent}}}$"
+
+    return f"{int(value):d}" if ( (exponent == 0) ) else f"$10^{{{exponent}}}$"
