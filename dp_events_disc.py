@@ -2,10 +2,10 @@
 import numpy as np
 import sys
 
-import importlib                                                 # *** COMMENT OUT ***
-importlib.reload(sys.modules['utils.analytic_estimate_events'])  # *** COMMENT OUT ***
-import time                                                      # *** COMMENT OUT ***
-import matplotlib.pyplot as plt                                  # *** COMMENT OUT ***
+#import importlib                                                 # *** COMMENT OUT ***
+#importlib.reload(sys.modules['utils.analytic_estimate_events'])  # *** COMMENT OUT ***
+#import time                                                      # *** COMMENT OUT ***
+#import matplotlib.pyplot as plt                                  # *** COMMENT OUT ***
 from utils.analytic_estimate_events import *
 from utils.load_pulsars import load_pulsars_fnc
 from superrad import ultralight_boson as ub
@@ -21,16 +21,18 @@ freq_GW = pulsars['F_GW'].to_numpy()
 fdot_range = pulsars['fdot range or resolution [Hz/s]'].to_numpy()
 
 #%%
-testing = True                                                   # *** COMMENT OUT *** change to False
+testing = False                                   # *** COMMENT OUT *** change to False
 if testing:
     i_fGW = 0                   
     Mmin, Mmax = 5, 30           
     aMin, aMax = 0, 1            
     MValues, aValues, hValues = 98, 101, 20
+    log10eps = 8.6
 else:
     i_fGW = int(sys.argv[1]) 
     Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3]) 
     aMin, aMax = float(sys.argv[4]), float(sys.argv[5])
+    log10eps = float(sys.argv[6])
     MValues, aValues, hValues = 205, 198, 121                 
 print('\nComputing pulsar number =', i_fGW, ', GW freq. = ', freq_GW[i_fGW], ' Hz', flush=True)
 print('\nMmin, Mmax =', Mmin, ' ', Mmax, 'aMin, aMax =', aMin, ' ', aMax, flush=True)
@@ -58,38 +60,40 @@ bc = ub.UltralightBoson(spin=1, model="relativistic")
 t_SR, t_GW, h_Tilde, fGW_dot, F_peak, M_peak, tEMtGW_Ratio = get_hTilde_peak(bc, alpha_grid, MList, aList, r_d)
 
 #%%
-log10eps = 8.6
 BW = 1.4*GHz
 FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
 fr = 1.E-5
 
-# if log10eps <= 7.:
-#   if freq_GW[i_fGW] < 250:
-#       hMax = 5.E-19
-#   else if freq_GW[i_fGW] < 400:
-#       hMax = 1.E-20
-#   else:
-#       hMax = 3.E-21
-# else if log10eps <= 8.5:
-#   if freq_GW[i_fGW] < 250:
-#       hMax = 1.E-21
-#   else if freq_GW[i_fGW] < 400:
-#       hMax = 3.E-22
-#   else:
-#       hMax = 1.E-22
-# else:
-#   hMax = 1.E-22
+hMin = 1.E-26  # large range for the plot of the distributions: 5E-28, 6.E-24
+
+if log10eps <= 7.:
+    if freq_GW[i_fGW] < 250:
+        hMax = 5.E-19
+    elif freq_GW[i_fGW] < 400:
+        hMax = 1.E-20
+    else:
+        hMax = 3.E-21
+elif log10eps <= 8.5:
+    if freq_GW[i_fGW] < 250:
+        hMax = 1.E-21
+    elif freq_GW[i_fGW] < 400:
+        hMax = 3.E-22
+    else:
+       hMax = 1.E-22
+else:
+    hMax = 1.E-22
+
+print('\nlog10(eps) =', log10eps, ' hMin, hMax = ', hMin, hMax, flush=True)
+
 
 #%%
 eps = np.power(10., -log10eps)
 F_peak_rescaled = (eps**2. * fr)*F_peak/FTh
 
-hMin, hMax = 15.E-26, 1.E-21       # large range for the plot of the distributions: 5E-28, 6.E-24
 hList = np.geomspace(hMin, hMax, hValues)
 dfdlogh_disc = np.zeros((hValues+1, 2))
 dfdlogh_disc[0, :] = [0, freq_GW[i_fGW]]
 dfdlogh_disc[1:, 0] = hList
-
 
 if np.isnan(fdot_range[i_fGW]):
     fGW_dot_rescaled = fGW_dot/1.
@@ -99,15 +103,15 @@ else:
 Hplasma = get_Hplasma(mu, eps, M_peak, alpha_grid)
 h_Tilde = np.where(Hplasma == 0., np.nan, h_Tilde)
 
-start_time = time.time()                                     # *** COMMENT OUT ***
+#start_time = time.time()                                     # *** COMMENT OUT ***
 for i_h, hVal in enumerate(hList):
     if (i_h%20 == 0):
         print('Computing h value number =',i_h, flush=True)
     dfdlogh_disc[i_h+1, 1] = norm_disc*get_dfdlogh_disc(eps, tEMtGW_Ratio, t_SR, t_GW, h_Tilde, MList, aList, hVal, 
                                                         fGW_dot_rescaled, F_peak_rescaled, r_d, rho_obs, tIn, x_disc)
         
-end_time = time.time()                                       # *** COMMENT OUT ***
-print(f"Execution time: {end_time - start_time} seconds")    # *** COMMENT OUT ***
+#end_time = time.time()                                       # *** COMMENT OUT ***
+#print(f"Execution time: {end_time - start_time} seconds")    # *** COMMENT OUT ***
 
 #%%
 # Save results

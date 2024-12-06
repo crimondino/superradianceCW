@@ -3,21 +3,21 @@ import numpy as np
 
 import importlib                                               
 import sys                                                      
-importlib.reload(sys.modules['utils.plot_functions']) 
+#importlib.reload(sys.modules['utils.plot_functions']) 
 from utils.plot_functions import *
 from utils.load_pulsars import load_pulsars_fnc
 from utils.my_units import *
 
 # %%
-
 ### Loading csv file with pulsars data as a panda dataframe
 pulsars = load_pulsars_fnc()
 freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 NBH = 1.E8
 
-log10eps_list = np.array([9.7, 9.5, 9.3, 9., 8.7, 8.5, 8., 7.5, 7., 6.5])
-freq_GW_ind = np.arange(42) #freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband')
+# still to add: 7.3 and 6.3
+log10eps_list = np.array([9.8, 9.5, 9., 8.7, 8.5, 8.3, 8., 7.7, 7.5, 7., 6.5, 6.0]) #np.array([9.8, 9.5, 9.3, 9., 8.7, 8.5, 8., 7.5, 7., 6.5])
+freq_GW_ind = np.arange(44) #freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband')
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("crest", len(log10eps_list)) 
 nEV_list = np.zeros((len(log10eps_list), len(freq_GW_ind), 1+len(BHpop_list)))
@@ -42,18 +42,20 @@ for i_eps, log10eps in enumerate(log10eps_list):
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-min_lognev = -1.; max_lognev = 4.
+font_s=18
+min_lognev = 0.; max_lognev = np.log10(np.max(np.min(nEV_list[:, :, 1:], axis=2)))#4.
 logNev_th = 1. #np.log10(3.)
 dp_limits = np.loadtxt('data/DPlimits.txt')
 dp_limits_Planck = np.loadtxt('data/DPlimits_Planck.txt')
-ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='k', alpha=0.3)    
-ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='k', alpha=0.2)    
+ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='gray')    
+ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='lightgray', alpha=1)    
+ax.plot(dp_limits[:, 0], dp_limits[:, 1], linewidth=0.8, color='gray', alpha=1)    
 
 for i, i_fGW in enumerate(freq_GW_ind):
     # Define the x-position for the vertical line
     x_pos = freq_GW.iloc[i_fGW]*np.pi*Hz/(eV)
-    y_values = np.geomspace(10**(-9.5), 10**(-6.5), 100)
-    color_values = np.interp(np.log10(y_values), -log10eps_list, np.log10(np.min(nEV_list[:, i, 1:], axis=1)), left=None, right=None, period=None)
+    y_values = np.geomspace(10**(-np.max(log10eps_list)), 10**(-np.min(log10eps_list)), 100)
+    color_values = np.interp(np.log10(y_values), -log10eps_list, np.log10(np.min(nEV_list[:, i, 1:], axis=1) + 1E-6), left=None, right=None, period=None)
     #y_values = [np.power(10, -log10eps_list[j]) for j in range(len(log10eps_list))]
     #color_values = np.log10(np.min(nEV_list[:, i, 1:], axis=1), where=(np.min(nEV_list[:, i, 1:], axis=1)>0), out=(np.zeros(len(log10eps_list))-2.))  # You can replace this with your own array of values
     #segments = np.array([[[x_pos, y_values[i]], [x_pos, y_values[i+1]]] for i in range(len(y_values) - 1)])
@@ -91,18 +93,21 @@ fig.tight_layout()
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-min_lognev = -1.; max_lognev = 4.
+min_lognev = -1.; max_lognev = np.log10(np.max(np.max(nEV_list[:, :, 1:], axis=2)))
 logNev_th = 1. #np.log10(3.)
 dp_limits = np.loadtxt('data/DPlimits.txt')
 dp_limits_Planck = np.loadtxt('data/DPlimits_Planck.txt')
-ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='k', alpha=0.3)    
-ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='k', alpha=0.2)    
+ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='gray')    
+ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='lightgray', alpha=1)    
+ax.plot(dp_limits[:, 0], dp_limits[:, 1], linewidth=0.8, color='gray', alpha=1)    
+#ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='k', alpha=0.3)    
+#ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='k', alpha=0.2)    
 
 for i, i_fGW in enumerate(freq_GW_ind):
     # Define the x-position for the vertical line
     x_pos = freq_GW.iloc[i_fGW]*np.pi*Hz/(eV)
-    y_values = np.geomspace(10**(-9.5), 10**(-6.5), 100)
-    color_values = np.interp(np.log10(y_values), -log10eps_list, np.log10(np.max(nEV_list[:, i, 1:], axis=1)), left=None, right=None, period=None)
+    y_values = np.geomspace(10**(-np.max(log10eps_list)), 10**(-np.min(log10eps_list)), 100)
+    color_values = np.interp(np.log10(y_values), -log10eps_list, np.log10(np.max(nEV_list[:, i, 1:], axis=1)+ 1E-6), left=None, right=None, period=None)
     #y_values = [np.power(10, -log10eps_list[j]) for j in range(len(log10eps_list))]
     #color_values = np.log10(np.max(nEV_list[:, i, 1:], axis=1), where=(np.max(nEV_list[:, i, 1:], axis=1)>0), out=(np.zeros(len(log10eps_list))-2.))  # You can replace this with your own array of values
     #segments = np.array([[[x_pos, y_values[i]], [x_pos, y_values[i+1]]] for i in range(len(y_values) - 1)])

@@ -10,7 +10,7 @@ from utils.my_units import *
 
 #%%
 freq_GW_ind = [0, 3, 10, 23] #[0, 3, 10, 23]
-file_name_end = '_eps80' #'_eps65_testlarge'
+file_name_end = '_eps80_fr7' #'_eps65_testlarge'
 #file_name_end_testEM = '_eps80_testPEM_fdot'
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 #BHpop_list = ['5_30_0_1_']
@@ -50,7 +50,7 @@ for i_BH, BHp_name in enumerate(BHpop_list):
     lines.append(mlines.Line2D([], [], color='black', linestyle=linestyles[i_BH], label=BHp_name[2:4]+', '+max_spin))  ### fix this
 legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$',
                     handles=lines, loc='upper right', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
+                    labelspacing=0.2, handlelength=1.5, fontsize=14)
 ax.add_artist(legend)
 
 ax.set_xscale('log'); ax.set_yscale('log')
@@ -87,8 +87,6 @@ ax.set_title('Number of expected events', fontsize=font_s);
 
 fig.tight_layout()
 fig.savefig('figs/nevents_eps80.pdf', bbox_inches="tight")
-
-
 
 
 
@@ -145,11 +143,11 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 2E4)
+ax.set_yscale('log'); ax.set_ylim(1, 1.E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
@@ -168,7 +166,7 @@ print(len(pulsars))
 freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 
-log10eps_list = [8., 8.]#[8., 7.5, 7., 6.5]#[6.5, 7., 7.5, 8.]
+log10eps_list = [8., 7.5, 7, 6.5] 
 eps_labels = ['$10^{-8}$', '$10^{-7.5}$', '$10^{-7}$',  '$10^{-6.5}$']
 freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
 #freq_GW_ind = [0, 3, 10, 23, 43]
@@ -211,11 +209,11 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 2E4)
+ax.set_yscale('log'); ax.set_ylim(1, 1.E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
@@ -276,11 +274,11 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 5E4)
+ax.set_yscale('log'); ax.set_ylim(1, 3E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
@@ -341,11 +339,11 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s)
+ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 5E4)
+ax.set_yscale('log'); ax.set_ylim(0.3, 1E4)
 ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 

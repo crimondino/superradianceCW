@@ -51,7 +51,7 @@ for i_BH, BHp_name in enumerate(BHpop_list):
     lines.append(mlines.Line2D([], [], color='black', linestyle=linestyles[i_BH], label=BHp_name[2:4]+', '+max_spin))  ### fix this
 legend2 = ax.legend(title='$M_{\mathrm{max}}\ [M_{\odot}], \chi_{\mathrm{max}}$',
                     handles=lines, loc='upper left', handletextpad=0.5, frameon=False, 
-                    labelspacing=0.2, handlelength=1, fontsize=14)
+                    labelspacing=0.2, handlelength=1.5, fontsize=14)
 ax.add_artist(legend)
 
 ax.set_xscale('log'); ax.set_yscale('log')
