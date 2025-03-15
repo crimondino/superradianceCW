@@ -19,15 +19,16 @@ print('\n Total number of pulsars =',len(pulsars), flush=True)
 #test, pulsars_ind = np.unique(np.round(pulsars['F_GW'].to_numpy(), -1), return_index=True)
 freq_GW = pulsars['F_GW'].to_numpy()
 fdot_range = pulsars['fdot range or resolution [Hz/s]'].to_numpy()
+hUL = pulsars['upper_limits'].to_numpy()
 
 #%%
 testing = False                                   # *** COMMENT OUT *** change to False
 if testing:
     i_fGW = 0                   
-    Mmin, Mmax = 5, 30           
-    aMin, aMax = 0, 1            
+    Mmin, Mmax = 5, 20           
+    aMin, aMax = 0, 0.3            
     MValues, aValues, hValues = 98, 101, 20
-    log10eps = 8.6
+    log10eps = 8.9
 else:
     i_fGW = int(sys.argv[1]) 
     Mmin, Mmax = float(sys.argv[2]), float(sys.argv[3]) 
@@ -64,7 +65,7 @@ BW = 1.4*GHz
 FTh = 1.5*(1E-3)*Jy*BW/(erg/Second/CentiMeter**2)
 fr = 1.E-5
 
-hMin = 1.E-26  # large range for the plot of the distributions: 5E-28, 6.E-24
+hMin = 0.8*hUL[i_fGW] #1.E-26  # large range for the plot of the distributions: 5E-28, 6.E-24
 
 if log10eps <= 7.:
     if freq_GW[i_fGW] < 250:
@@ -84,7 +85,6 @@ else:
     hMax = 1.E-22
 
 print('\nlog10(eps) =', log10eps, ' hMin, hMax = ', hMin, hMax, flush=True)
-
 
 #%%
 eps = np.power(10., -log10eps)
@@ -121,12 +121,15 @@ if not testing:
 
 #%%
 if testing:
+    import matplotlib.pyplot as plt
+    NBH = 1.E8
+
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
-    ax.plot(dfdlogh_disc[1:, 0], dfdlogh_disc[1:, 1])
+    ax.plot(dfdlogh_disc[1:, 0], NBH*dfdlogh_disc[1:, 1])
 
     ax.set_xscale('log'); ax.set_yscale('log')
-    ax.set_xlim(hMin,hMax); 
-    #ax.set_ylim(1E-8,1.E-5)
+    ax.set_xlim(1.E-27,hMax); 
+    ax.set_ylim(1,1E3)
     ax.grid()
     ax.set_xlabel(r'$h$', fontsize=12); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=12); 
 
@@ -143,4 +146,12 @@ if testing:
     ax.plot(cum_dist[:, 0], cum_dist[:, 1]/x_disc)
     ax.set_xscale('log'); ax.set_yscale('log')
     ax.set_xlim(hMin,hMax); #ax.set_ylim(1E-2,1.E4)
+
+#%%
+if testing:
+    mu = np.pi*freq_GW[pulsars['NAME']=='J1910-5959B']*Hz
+    alpha_grid = (GN*mu*MList*MSolar)[:, None]
+
+    t_SR, t_GW, h_Tilde, fGW_dot, F_peak, M_peak, tEMtGW_Ratio = get_hTilde_peak(bc, alpha_grid, MList, aList, r_d)
+
 # %%

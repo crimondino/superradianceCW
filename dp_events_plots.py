@@ -10,7 +10,7 @@ from utils.my_units import *
 
 #%%
 freq_GW_ind = [0, 3, 10, 23] #[0, 3, 10, 23]
-file_name_end = '_eps80_fr7' #'_eps65_testlarge'
+file_name_end = '_eps80' #'_eps65_testlarge'
 #file_name_end_testEM = '_eps80_testPEM_fdot'
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 #BHpop_list = ['5_30_0_1_']
@@ -34,7 +34,7 @@ NBH = 1.E8
 for i, i_fGW in enumerate(freq_GW_ind):
     mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
     line,=ax.plot(dfdlogh[i][0][:, 0], NBH*dfdlogh[i][0][:, 1], color = colors[i], linewidth=1, 
-                ls=linestyles[0], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+                ls=linestyles[0], label=str(round(freq_GW.iloc[i_fGW], 1))+', '+str(round(mu_temp, 1)))
     for i_BH in range(1, len(BHpop_list)):
         line,=ax.plot(dfdlogh[i][i_BH][:, 0], NBH*dfdlogh[i][i_BH][:, 1], color = colors[i], linewidth=1, 
                       ls=linestyles[i_BH])
@@ -57,12 +57,12 @@ ax.set_xscale('log'); ax.set_yscale('log')
 #ax.set_xlim(5E-27,1.E-22); ax.set_ylim(-2,10)
 ax.set_xlim(5E-28,6E-24); ax.set_ylim(5,8.E3)
 ax.grid()
-ax.set_xlabel(r'$h$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h$', fontsize=font_s); 
+ax.set_xlabel(r'$h_0$', fontsize=font_s); ax.set_ylabel(r'$dn_{h}/d\log h_0$', fontsize=font_s); 
 ax.set_title('Signal strain distribution', fontsize=font_s);
 #ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
+#fig.savefig('figs/strain_dist_eps80.pdf', bbox_inches="tight")
 
 
 #%%
@@ -71,9 +71,9 @@ font_s=18
 colors = sns.color_palette("mako", len(freq_GW_ind)) 
 
 for i, i_fGW in enumerate(freq_GW_ind):
-    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    mu_temp = np.pi*freq_GW.iloc[i_fGW]*Hz/(1.E-13*eV)
     line,=ax.plot(cum_dist[i][0][:, 0], NBH*cum_dist[i][0][:, 1], color = colors[i], linewidth=1, 
-                ls=linestyles[0], label=str(round(freq_GW[i_fGW], 1))+', '+str(round(mu_temp, 1)))
+                ls=linestyles[0], label=str(round(freq_GW.iloc[i_fGW], 1))+', '+str(round(mu_temp, 1)))
     for i_BH in range(1, len(BHpop_list)):
         line,=ax.plot(cum_dist[i][i_BH][:, 0], NBH*cum_dist[i][i_BH][:, 1], color = colors[i], linewidth=1, 
                       ls=linestyles[i_BH])
@@ -81,7 +81,7 @@ for i, i_fGW in enumerate(freq_GW_ind):
 ax.set_xscale('log'); ax.set_yscale('log')
 ax.set_xlim(6E-28,1E-24); ax.set_ylim(2,1.E4)
 ax.grid()
-ax.set_xlabel(r'$h_{0}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0})$', fontsize=font_s); 
+ax.set_xlabel(r'$h_{0}^{95\%}$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h_0>h_{0}^{95\%})$', fontsize=font_s); 
 ax.set_title('Number of expected events', fontsize=font_s);
 #ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
@@ -104,7 +104,10 @@ hUL = pulsars.upper_limits
 log10eps_list = [9., 8.5, 8.]#[8., 8.5, 9.]
 eps_labels = ['$10^{-9}$', '$10^{-8.5}$', '$10^{-8}$']
 #freq_GW_ind = np.arange(42)
-freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
+# sources that are in the disk z < 2
+#freq_GW_disk = np.array([ 0,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 15, 16, 18, 19, 20, 22, 23, 25, 26, 28, 30, 32, 33, 34, 36, 38, 39, 40, 43])
+freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') 
+#freq_GW_ind = np.intersect1d(freq_GW_ind, freq_GW_disk)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("crest", len(log10eps_list)) 
 
@@ -143,12 +146,12 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
+ax_top.set_xlabel(r'$m \ [10^{-13}\ {\mathrm{eV}}/c^2]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
 ax.set_yscale('log'); ax.set_ylim(1, 1.E4)
-ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h_0>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
@@ -168,8 +171,9 @@ hUL = pulsars.upper_limits
 
 log10eps_list = [8., 7.5, 7, 6.5] 
 eps_labels = ['$10^{-8}$', '$10^{-7.5}$', '$10^{-7}$',  '$10^{-6.5}$']
-freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') #np.arange(42)
-#freq_GW_ind = [0, 3, 10, 23, 43]
+#freq_GW_disk = np.array([ 0,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 15, 16, 18, 19, 20, 22, 23, 25, 26, 28, 30, 32, 33, 34, 36, 38, 39, 40, 43])
+freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband') 
+#freq_GW_ind = np.intersect1d(freq_GW_ind, freq_GW_disk)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("flare", len(log10eps_list)) 
 
@@ -209,12 +213,12 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
+ax_top.set_xlabel(r'$m\ [10^{-13}\ {\mathrm{eV}}/c^2]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
 ax.set_yscale('log'); ax.set_ylim(1, 1.E4)
-ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h_0>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
@@ -234,8 +238,12 @@ hUL = pulsars.upper_limits
 
 log10eps_list = [9., 8.5, 8.]#[8., 8.5, 9.]
 eps_labels = ['$10^{-9}$', '$10^{-8.5}$', '$10^{-8}$']
-#freq_GW_ind = np.arange(42)
-freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()!='narrowband') #np.arange(42)
+#freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()!='narrowband') #np.arange(42)
+freq_GW_ind, = np.where( ( (pulsars['suggested_pipeline'].to_numpy()!='narrowband') &
+                           (pulsars['suggested_pipeline'].to_numpy()!='binary') &
+                           (pulsars['NAME'].to_numpy()!='J1748-3009')) ) #np.arange(42)
+#freq_GW_disk = np.array([ 0,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 15, 16, 18, 19, 20, 22, 23, 25, 26, 28, 30, 32, 33, 34, 36, 38, 39, 40, 43])
+#freq_GW_ind = np.intersect1d(freq_GW_ind, freq_GW_disk)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("crest", len(log10eps_list)) 
 
@@ -274,16 +282,16 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
+ax_top.set_xlabel(r'$m\ [10^{-13}\ {\mathrm{eV}}/c^2]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
-ax.set_yscale('log'); ax.set_ylim(1, 3E4)
-ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h>h_{0}^{95\%})$', fontsize=font_s); 
+ax.set_yscale('log'); #ax.set_ylim(1, 3E4)
+ax.set_xlabel(r'$f_{\mathrm{GW}}\ [{\mathrm{Hz}}]$', fontsize=font_s); ax.set_ylabel(r'$N_{\rm events}(h_0>h_{0}^{95\%})$', fontsize=font_s); 
 ax.yaxis.set_major_formatter(FuncFormatter(log_format_func))
 
 fig.tight_layout()
-fig.savefig('figs/nevents_analysis_loweps_app.pdf', bbox_inches="tight")
+#fig.savefig('figs/nevents_analysis_loweps_app.pdf', bbox_inches="tight")
 
 
 #%%
@@ -300,7 +308,9 @@ hUL = pulsars.upper_limits
 log10eps_list = [8., 7.5, 7., 6.5]#[6.5, 7., 7.5, 8.]
 eps_labels = ['$10^{-8}$', '$10^{-7.5}$', '$10^{-7}$',  '$10^{-6.5}$']
 #freq_GW_ind = np.arange(42)
-freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()!='narrowband') #np.arange(42)
+freq_GW_ind, = np.where( ( (pulsars['suggested_pipeline'].to_numpy()!='narrowband') &
+                           (pulsars['suggested_pipeline'].to_numpy()!='binary') &
+                           (pulsars['NAME'].to_numpy()!='J1748-3009')) ) #np.arange(42)
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("flare", 7)[::-1] #sns.color_palette("flare", len(log10eps_list)) 
 
@@ -339,7 +349,7 @@ def forward(x):
 def inverse(x):
     return x / (np.pi*Hz/(1.E-13*eV))  # Inverse of the scaling
 ax_top = ax.secondary_xaxis('top', functions=(forward, inverse))
-ax_top.set_xlabel(r'$m c^2\ [10^{-13}\ {\mathrm{eV}}]$', fontsize=font_s, labelpad=7)
+ax_top.set_xlabel(r'$m \ [10^{-13}\ {\mathrm{eV}}/c^2]$', fontsize=font_s, labelpad=7)
 
 ax.grid()
 #ax.set_xscale('log'); ax.set_xlim(100, 1000); ax.grid(which='minor', axis='x')
@@ -441,7 +451,7 @@ colors = sns.color_palette("deep", ntot)
 
 #for i_fGW in range(len(freq_GW)):
 for i_fGW in range(ntot):
-    mu_temp = np.pi*freq_GW[i_fGW]*Hz/(1.E-13*eV)
+    mu_temp = np.pi*freq_GW.iloc[i_fGW]*Hz/(1.E-13*eV)
     #line,=ax.plot(dfdlogh[i_fGW][:, 0], dfdlogh[i_fGW][:, 1], color = colors[i_fGW], label=str(int(mu_temp)))
     line,=ax.plot(cum_dist[i_fGW][:, 0], cum_dist[i_fGW][:, 1], color = colors[i_fGW], label=str(round(mu_temp, 1)))
     line,=ax.plot(cum_dist_masha[i_fGW][:, 0]*1.E-26, cum_dist_masha[i_fGW][:, 1], color = colors[i_fGW], linestyle='dashed', linewidth=2)

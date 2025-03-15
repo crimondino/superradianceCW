@@ -47,7 +47,7 @@ def get_hTilde_peak(bc, alpha_grid, MList, aList, rd):
                     tSR[i_m, i_a] = wf.cloud_growth_time()*Second
                     tGW[i_m, i_a] = wf.gw_time()*Second
                     hTilde[i_m, i_a] = wf.strain_char(0., dObs=(rd/Mpc) )
-                    fGWdot[i_m, i_a] = wf.freqdot_gw(0)*(Hz/Second)
+                    fGWdot[i_m, i_a] = wf.freqdot_gw(0) #*(Hz/Second)
                     Fpeak[i_m, i_a] = (0.13*alpha-0.19*alpha**2)*wf.mass_cloud(0)/(GN*mbh)/(4*np.pi*rd**2)/(erg/Second/CentiMeter**2)
                     Mcpeak[i_m, i_a] = wf.mass_cloud(0)
                     tEMtGWRatio[i_m, i_a] = wf.power_gw(0)*Watt/EM_lum(1, alpha, wf.mass_cloud(0), mbh)

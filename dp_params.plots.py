@@ -8,6 +8,7 @@ from utils.plot_functions import *
 from utils.load_pulsars import load_pulsars_fnc
 from utils.my_units import *
 
+
 # %%
 ### Loading csv file with pulsars data as a panda dataframe
 pulsars = load_pulsars_fnc()
@@ -15,13 +16,15 @@ freq_GW = pulsars.F_GW
 hUL = pulsars.upper_limits
 NBH = 1.E8
 
-# still to add: 7.3 and 6.3
-log10eps_list = np.array([9.8, 9.5, 9., 8.7, 8.5, 8.3, 8., 7.7, 7.5, 7., 6.5, 6.0]) #np.array([9.8, 9.5, 9.3, 9., 8.7, 8.5, 8., 7.5, 7., 6.5])
-freq_GW_ind = np.arange(44) #freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband')
+log10eps_list = np.array([9.8, 9.5, 9., 8.7, 8.5, 8.3, 8., 7.7, 7.5, 7.3, 7., 6.5, 6.3, 6.0]) 
+#freq_GW_ind = np.arange(44) #freq_GW_ind, = np.where(pulsars['suggested_pipeline'].to_numpy()=='narrowband')
+freq_GW_ind, = np.where( ((pulsars['suggested_pipeline'].to_numpy()!='binary') &
+                          (pulsars['NAME'].to_numpy()!='J1748-3009') ) )
 BHpop_list = ['5_30_0_1_', '5_20_0_1_', '5_30_0_0.5_', '5_20_0_0.3_']
 colors = sns.color_palette("crest", len(log10eps_list)) 
 nEV_list = np.zeros((len(log10eps_list), len(freq_GW_ind), 1+len(BHpop_list)))
 
+print('Number of sources:', len(freq_GW_ind))
 
 for i_eps, log10eps in enumerate(log10eps_list):
     #eps = np.power(10, -log10eps)
@@ -44,12 +47,14 @@ for i_eps, log10eps in enumerate(log10eps_list):
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 font_s=18
 min_lognev = 0.; max_lognev = np.log10(np.max(np.min(nEV_list[:, :, 1:], axis=2)))#4.
+print(max_lognev)
 logNev_th = 1. #np.log10(3.)
 dp_limits = np.loadtxt('data/DPlimits.txt')
 dp_limits_Planck = np.loadtxt('data/DPlimits_Planck.txt')
 ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='gray')    
 ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='lightgray', alpha=1)    
-ax.plot(dp_limits[:, 0], dp_limits[:, 1], linewidth=0.8, color='gray', alpha=1)    
+ax.plot(dp_limits[:, 0], dp_limits[:, 1], linewidth=0.5, color='dimgray', alpha=1)    
+#ax.plot(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], linewidth=2, linestyle='dashed', color='silver', alpha=1)    
 
 for i, i_fGW in enumerate(freq_GW_ind):
     # Define the x-position for the vertical line
@@ -83,25 +88,25 @@ ax.text(1.6E-12, 2E-7, r'Planck+', fontsize=12)
 ax.text(1.6E-12, 1.4E-7, r'unWISE', fontsize=12)
 
 plt.colorbar(lc, ax=ax, label=r'$\log_{10}(N_{\rm events})$',shrink=0.6)  # Colorbar to show the value scaling
-plt.xlabel(r'$m c^2\ [{\mathrm{eV}}]$', fontsize=font_s)
+plt.xlabel(r'$m\ [{\mathrm{eV}}/c^2]$', fontsize=font_s)
 plt.ylabel(r'$\varepsilon$', fontsize=font_s)
 plt.title("Pessimistic BH population")
 plt.show()
 
 fig.tight_layout()
-#fig.savefig('figs/meps_pessimistic.pdf', bbox_inches="tight")
+fig.savefig('figs/meps_pessimistic.pdf', bbox_inches="tight")
 
 #%%
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(7,5))
 min_lognev = -1.; max_lognev = np.log10(np.max(np.max(nEV_list[:, :, 1:], axis=2)))
+print(max_lognev)
 logNev_th = 1. #np.log10(3.)
 dp_limits = np.loadtxt('data/DPlimits.txt')
 dp_limits_Planck = np.loadtxt('data/DPlimits_Planck.txt')
 ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='gray')    
 ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='lightgray', alpha=1)    
-ax.plot(dp_limits[:, 0], dp_limits[:, 1], linewidth=0.8, color='gray', alpha=1)    
-#ax.fill_between(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], 1, color='k', alpha=0.3)    
-#ax.fill_between(dp_limits[:, 0], dp_limits[:, 1], 1, color='k', alpha=0.2)    
+ax.plot(dp_limits[:, 0], dp_limits[:, 1], linewidth=0.5, color='dimgray', alpha=1)    
+#ax.plot(dp_limits_Planck[:, 0], dp_limits_Planck[:, 1], linewidth=2, linestyle='dashed', color='silver', alpha=1)    
 
 for i, i_fGW in enumerate(freq_GW_ind):
     # Define the x-position for the vertical line
@@ -135,7 +140,7 @@ ax.text(1.6E-12, 2E-7, r'Planck+', fontsize=12)
 ax.text(1.6E-12, 1.4E-7, r'unWISE', fontsize=12)
 
 plt.colorbar(lc, ax=ax, label=r'$\log_{10}(N_{\rm events})$',shrink=0.6)  # Colorbar to show the value scaling
-plt.xlabel(r'$m c^2\ [{\mathrm{eV}}]$', fontsize=font_s)
+plt.xlabel(r'$m\ [{\mathrm{eV}}/c^2]$', fontsize=font_s)
 plt.ylabel(r'$\varepsilon$', fontsize=font_s)
 plt.title("Optimistic BH population")
 plt.show()

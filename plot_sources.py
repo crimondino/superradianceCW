@@ -23,6 +23,8 @@ print('Min and max GW frequency: ', np.min(pulsars['F_GW']), np.max(pulsars['F_G
 print('Min and max EM frequency: ', np.min(pulsars['F0']), np.max(pulsars['F0']), 'Hz')
 print('Min and max dp mass: ', np.pi*Hz*np.min(pulsars['F_GW'])/eV, np.pi*Hz*np.max(pulsars['F_GW'])/eV, 'eV')
 
+#pulsars = pulsars.iloc[[0, 3, 10, 23]]
+
 #%%
 # Example RA and Dec in degrees
 ra_list = pulsars['RAJ'].to_numpy()
@@ -71,7 +73,17 @@ print('Length of tab1:', len(tab1), '   Unique:', len(np.unique(tab1)))
 tab1[~np.isin(tab1, pulsars['NAME'])]
 
 
+#%%
+# Check which sources are outside the disk
+
 ############## Plots ##############
+zth = 1
+ind_disk = np.arange(44)
+ind_disk = ind_disk[np.abs(z)<zth]
+print(len(ind_disk), ind_disk)
+
+plt.hist(z[ind_disk], bins=100, )
+plt.show() 
 
 # %%
 # Function to plot a sphere
@@ -111,7 +123,7 @@ for i_p, p_name in enumerate(pipelines):
     y_temp = y[pulsars['suggested_pipeline'] == p_name]
     z_temp = z[pulsars['suggested_pipeline'] == p_name]
     dist_temp = pulsars[pulsars['suggested_pipeline'] == p_name]['DIST'].to_numpy()
-    #ax.scatter(x_temp, y_temp, z_temp, s=300/(dist_temp)**(0.8), color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
+    #ax.scatter(x_temp, y_temp, z_temp, s=300, color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
     ax.scatter(x_temp, y_temp, z_temp, s=300, color=colors[i_p], marker=markers[i_p], label=p_names[i_p], alpha=1)
     for xi, yi, zi in zip(x_temp, y_temp, z_temp):
         count+=1
@@ -175,7 +187,7 @@ ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
 ax.legend(fontsize=40, loc='best', bbox_to_anchor=(-0.5, 0.21, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
-fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
+#fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
 
 
 #%%
