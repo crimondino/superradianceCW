@@ -114,8 +114,13 @@ xlim = 10
 #markers = ['D', 'o', '^', 's', 'd', 'p']
 #colors = sns.color_palette("bright", len(pipelines)) 
 markers = ['^', 'd', 's', 'P', 'o']
-colors = ['green', 'magenta', 'orange', 'steelblue', 'khaki']
+#colors = ['green', 'magenta', 'orange', 'steelblue', 'khaki']
 p_names = ['Narrow-band', 'Targeted', 'Semi-coherent', 'All-sky', 'Binary']
+
+CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                   '#f781bf', '#a65628', '#984ea3',
+                   '#999999', '#e41a1c', '#dede00']
+colors = [CB_color_cycle[1], CB_color_cycle[3], CB_color_cycle[2], CB_color_cycle[0], CB_color_cycle[4]]
 
 count=0
 for i_p, p_name in enumerate(pipelines): 
@@ -187,14 +192,17 @@ ax.plot(x_circle, y_circle, z_circle, color='gray', alpha=0.8, linewidth=1)
 
 ax.legend(fontsize=40, loc='best', bbox_to_anchor=(-0.5, 0.21, 0.5, 0.5))#loc=[-0.5, 0.3])
 fig.tight_layout()
-#fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
+fig.savefig('figs/sources_3d.pdf', bbox_inches="tight")
 
 
 #%%
 # Plot using Healpy
 markers = ['D', 'o', '^', 's', 'd', 'p']
 marker_size = 40
-colors = sns.color_palette("bright", len(pipelines)) 
+CB_color_cycle = ['#377eb8', '#ff7f00', '#4daf4a',
+                   '#f781bf', '#a65628', '#984ea3',
+                   '#999999', '#e41a1c', '#dede00']
+colors = [CB_color_cycle[1], CB_color_cycle[3], CB_color_cycle[2], CB_color_cycle[0], CB_color_cycle[4]] #sns.color_palette("bright", len(pipelines)) 
 
 hp.mollview(title="Sky Map of selected sources", coord='G', flip='geo')
 hp.projscatter(270, 0, lonlat=True, s=marker_size, color='k', marker='x', label='Earth')
